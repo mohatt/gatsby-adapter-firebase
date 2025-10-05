@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# misc
+.DS_Store
+
+# generated files
+dist/
+public/
+.cache/
+coverage/
+*.tgz
+
+# logs
+logs
+*.log
+
+# editor files
+.vscode/*
+.idea
+*.sublime-project
+*.sublime-workspace
+
+# example site
+/example
+/gatsby-adapter-aws

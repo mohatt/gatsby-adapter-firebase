@@ -1,0 +1,86 @@
+{
+  "name": "gatsby-adapter-firebase",
+  "version": "1.0.0",
+  "description": "Gatsby adapter for Firebase",
+  "keywords": [
+    "gatsby",
+    "transformation"
+  ],
+  "homepage": "https://github.com/mohatt/gatsby-adapter-firebase",
+  "bugs": "https://github.com/mohatt/gatsby-adapter-firebase/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mohatt/gatsby-adapter-firebase.git"
+  },
+  "license": "MIT",
+  "author": "Mohamed Elkholy <mohatt@pm.me>",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pkgroll --clean-dist --target node20",
+    "build:watch": "pnpm build --watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "prepare": "NODE_ENV=production pnpm build",
+    "release": "semantic-release --no-ci",
+    "release:inspect": "semantic-release --dry-run",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "chalk": "^4.1.1",
+    "debug": "^4.4.0",
+    "lodash": "^4.17.21",
+    "p-limit": "^6.2.0"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/git": "10.0.1",
+    "@types/debug": "4.1.12",
+    "@types/eslint__js": "^8.42.3",
+    "@types/lodash": "4.17.20",
+    "@types/node": "18.19.129",
+    "@vitest/coverage-v8": "3.2.4",
+    "@eslint/js": "^9.0.0",
+    "@tsconfig/node20": "^20.1.2",
+    "@tsconfig/strictest": "^2.0.2",
+    "eslint": "^9.37.0",
+    "gatsby": "5.14.6",
+    "memfs": "4.47.0",
+    "pkgroll": "2.15.4",
+    "prettier": "3.6.2",
+    "prettier-plugin-packagejson": "2.5.19",
+    "semantic-release": "22.0.12",
+    "typescript": "5.1.6",
+    "typescript-eslint": "^7.1.0",
+    "vite": "6.3.6",
+    "vitest": "3.2.4",
+    "vitest-memfs": "1.5.1"
+  },
+  "peerDependencies": {
+    "gatsby": ">=5.12.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "renovate": {
+    "extends": [
+      "config:js-lib"
+    ]
+  }
+}
