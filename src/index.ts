@@ -5,6 +5,7 @@ import { prepareFunctionsWorkspace } from './lib/functions-builder.js'
 import { transformRoutes } from './lib/routes-transform.js'
 import { mergeFirebaseJson } from './lib/firebase-merge.js'
 import { readPackageJson, relativeToPosix } from './lib/utils.js'
+import { AdaptorReporter } from './lib/reporter.js'
 
 const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
   const hostingTarget = adapterOptions.hostingTarget ?? 'gatsby'
@@ -17,77 +18,97 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
   return {
     name: 'gatsby-adapter-firebase',
 
-    async adapt({ routesManifest, functionsManifest, pathPrefix, reporter }) {
+    async adapt(args) {
+      const { routesManifest, functionsManifest, pathPrefix, reporter: gatsbyReporter } = args
       const projectRoot = process.cwd()
       const functionsOutDir = path.resolve(projectRoot, functionsOutDirRel)
       const firebaseJsonFile = path.join(projectRoot, 'firebase.json')
+      const reporter = new AdaptorReporter(gatsbyReporter)
 
-      const fnResult = await prepareFunctionsWorkspace({
-        functions: functionsManifest ?? [],
-        outDir: functionsOutDir,
-        projectRoot,
-        reporter,
-        runtime: functionsRuntime,
-        functionsConfig,
-        functionsConfigOverride,
-      })
+      const [fnResult, fnErr] = await reporter
+        .activity('buildFunctions', 'Building functions workspace')
+        .run(async (setStatus) => {
+          const result = await prepareFunctionsWorkspace({
+            functions: functionsManifest ?? [],
+            outDir: functionsOutDir,
+            projectRoot,
+            reporter: gatsbyReporter,
+            runtime: functionsRuntime,
+            functionsConfig,
+            functionsConfigOverride,
+          })
 
-      const hostingResult = transformRoutes({
-        routes: routesManifest ?? [],
-        pathPrefix,
-        reporter,
-        functionIdMap: fnResult.idMap,
-        functionsConfig,
-        functionsConfigOverride,
-      })
+          const functionExports = result.artifacts?.exports
+          if (functionExports?.length) {
+            const infoParts = [
+              `codebase=${functionsCodebase}`,
+              `functions=${functionExports.length} (use --verbose for breakdown)`,
+            ]
+            setStatus(infoParts.join(', '))
 
-      const functionsEntry: FunctionsEntry = fnResult.artifacts && {
-        codebase: functionsCodebase,
-        source: relativeToPosix(projectRoot, functionsOutDir) || '.',
-        runtime: functionsRuntime,
-      }
+            reporter.verbose(
+              `Functions codebase: ${[`${functionsCodebase} → ${functionsOutDir}`]
+                .concat(functionExports.map((fn) => `${fn.relativeEntry} → ${fn.deployedId}`))
+                .join('\n - ')}`,
+            )
+          } else {
+            setStatus('skipped')
+          }
 
-      const hostingEntry: HostingEntry = {
-        target: hostingTarget,
-        public: 'public',
-        redirects: hostingResult.redirects,
-        rewrites: hostingResult.rewrites,
-        headers: hostingResult.headers,
-      }
+          return result
+        })
+      if (fnErr) return
 
-      const configResult = await mergeFirebaseJson(firebaseJsonFile, {
-        hostingEntry,
-        functionsEntry,
-      })
+      const [hostingResult, hostingErr] = await reporter
+        .activity('transformRoutes', 'Building hosting config')
+        .run((setStatus) => {
+          const result = transformRoutes({
+            routes: routesManifest ?? [],
+            pathPrefix,
+            reporter: gatsbyReporter,
+            functionIdMap: fnResult.idMap,
+            functionsConfig,
+            functionsConfigOverride,
+          })
 
-      const functionExports = fnResult.artifacts?.exports
-      const infoParts = [
-        `target=${hostingTarget}`,
-        `redirects=${hostingResult.redirects.length}`,
-        `rewrites=${hostingResult.rewrites.length}`,
-        `headers=${hostingResult.headers.length}`,
-        `functions=${functionExports?.length ?? 0}`,
-      ]
-      reporter.info(
-        `[gatsby-adapter-firebase] firebase.json ${
-          configResult.wrote ? 'updated' : 'unchanged'
-        } · ${infoParts.join(', ')} (use --verbose for breakdown)`,
-      )
-
-      if (functionExports?.length) {
-        const mapped = functionExports.map((fn) => `${fn.relativeEntry} → ${fn.deployedId}`)
-        reporter.verbose(
-          `[gatsby-adapter-firebase] Functions codebase: ${[
-            `${functionsCodebase} → ${functionsOutDir}`,
+          const infoParts = [
+            `target=${hostingTarget}`,
+            `redirects=${result.redirects.length}`,
+            `rewrites=${result.rewrites.length}`,
+            `headers=${result.headers.length}`,
           ]
-            .concat(mapped)
-            .join('\n · ')}`,
+          setStatus(infoParts.join(', '))
+
+          return result
+        })
+      if (hostingErr) return
+
+      await reporter.activity('writeConfig', 'Building firebase.json').run(async (setStatus) => {
+        const functionsEntry: FunctionsEntry = fnResult.artifacts && {
+          codebase: functionsCodebase,
+          source: relativeToPosix(projectRoot, functionsOutDir) || '.',
+          runtime: functionsRuntime,
+        }
+
+        const hostingEntry: HostingEntry = {
+          target: hostingTarget,
+          public: 'public',
+          redirects: hostingResult.redirects,
+          rewrites: hostingResult.rewrites,
+          headers: hostingResult.headers,
+        }
+
+        const result = await mergeFirebaseJson(firebaseJsonFile, {
+          hostingEntry,
+          functionsEntry,
+        })
+
+        setStatus(
+          result.wrote > 0 ? `updated (${(result.wrote / 1024).toFixed(2)} KB)` : 'unchanged',
         )
-      } else {
-        reporter.verbose(
-          '[gatsby-adapter-firebase] no Gatsby functions detected; hosting static assets only',
-        )
-      }
+
+        return result
+      })
     },
 
     config({ reporter }) {

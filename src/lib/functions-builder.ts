@@ -11,7 +11,6 @@ import {
   isPathWithin,
   toPosix,
 } from './utils.js'
-import { error } from 'firebase-functions/logger'
 
 export type FunctionsBuilderOptions = {
   functions: FunctionsManifest

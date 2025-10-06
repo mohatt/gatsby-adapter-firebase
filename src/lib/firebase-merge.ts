@@ -1,11 +1,17 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { FirebaseJson, FunctionsEntry, HostingEntry } from './types.js'
+import { AdaptorError } from './reporter.js'
 import { toArray } from './utils.js'
 
 export type MergeFirebaseJsonOptions = {
   hostingEntry: HostingEntry
   functionsEntry?: FunctionsEntry
+}
+
+export type MergeFirebaseJsonResult = {
+  wrote: number
+  config: FirebaseJson
 }
 
 const DEFAULT_IGNORE = ['**/.*', '**/node_modules/**', 'firebase.json']
@@ -41,7 +47,10 @@ const mergeFunctionsEntry = (
   return { ...current, ...received }
 }
 
-export const mergeFirebaseJson = async (filePath: string, options: MergeFirebaseJsonOptions) => {
+export const mergeFirebaseJson = async (
+  filePath: string,
+  options: MergeFirebaseJsonOptions,
+): Promise<MergeFirebaseJsonResult> => {
   const { hostingEntry, functionsEntry } = options
   let currentJSON: string | null = null
   let current: FirebaseJson = {}
@@ -49,7 +58,7 @@ export const mergeFirebaseJson = async (filePath: string, options: MergeFirebase
     currentJSON = await fs.readFile(filePath, 'utf8')
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw new Error(`[gatsby-adapter-firebase] Failed to read ${filePath}: ${String(error)}`)
+      throw new AdaptorError(`Failed to read ${filePath}`, error)
     }
     currentJSON = null
   }
@@ -58,7 +67,7 @@ export const mergeFirebaseJson = async (filePath: string, options: MergeFirebase
     try {
       current = JSON.parse(currentJSON)
     } catch (error) {
-      throw new Error(`[gatsby-adapter-firebase] Failed to parse ${filePath}: ${String(error)}`)
+      throw new AdaptorError(`Failed to parse ${filePath}`, error)
     }
   }
 
@@ -88,15 +97,15 @@ export const mergeFirebaseJson = async (filePath: string, options: MergeFirebase
 
   const configJSON = `${JSON.stringify(config, null, 2)}\n`
   if (configJSON === currentJSON) {
-    return { wrote: false, config }
+    return { wrote: 0, config }
   }
 
   try {
     await fs.mkdir(path.dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, configJSON)
   } catch (error) {
-    throw new Error(`[gatsby-adapter-firebase] Failed to write ${filePath}: ${String(error)}`)
+    throw new AdaptorError(`Failed to write ${filePath}`, error)
   }
 
-  return { wrote: true, config }
+  return { wrote: configJSON.length, config }
 }
