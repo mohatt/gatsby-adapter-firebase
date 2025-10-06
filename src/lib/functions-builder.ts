@@ -203,7 +203,7 @@ export const prepareFunctionsWorkspace = async (
     type: 'commonjs',
     ...(enginesEntry ? { engines: { node: enginesEntry } } : {}),
     dependencies: {
-      'firebase-functions': '^4.4.0',
+      'firebase-functions': '^6.0.0',
     },
   }
 
