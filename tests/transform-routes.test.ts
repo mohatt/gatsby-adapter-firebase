@@ -24,13 +24,12 @@ describe('transformRoutes', () => {
       pathPrefix: '',
       reporter,
       functionIdMap: new Map([['ssr-engine', 'ssr_engine']]),
-      region: 'us-central1',
     })
 
     expect(rewrites).toEqual([
       {
         source: '/ssr',
-        function: { functionId: 'ssr_engine', pinTag: true, region: 'us-central1' },
+        function: { functionId: 'ssr_engine', pinTag: true },
       },
       {
         source: '/docs/**',
@@ -56,5 +55,37 @@ describe('transformRoutes', () => {
     expect(reporter.warn).toHaveBeenCalledWith(
       expect.stringContaining('contains query parameters or hash fragments'),
     )
+  })
+
+  it('derives rewrite region from config overrides with fallback to defaults', () => {
+    const routes: RoutesManifest = [
+      { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
+      { type: 'function', path: '/api', functionId: 'hello-world' },
+    ]
+
+    const { rewrites } = transformRoutes({
+      routes,
+      pathPrefix: '',
+      reporter: { warn: vi.fn() } as unknown as Reporter,
+      functionIdMap: new Map([
+        ['ssr-engine', 'ssr_engine'],
+        ['hello-world', 'hello_world'],
+      ]),
+      functionsConfig: { region: 'europe-west1' },
+      functionsConfigOverride: {
+        'ssr-engine': { region: 'asia-northeast1' },
+      },
+    })
+
+    expect(rewrites).toEqual([
+      {
+        source: '/ssr',
+        function: { functionId: 'ssr_engine', pinTag: true, region: 'asia-northeast1' },
+      },
+      {
+        source: '/api',
+        function: { functionId: 'hello_world', pinTag: true, region: 'europe-west1' },
+      },
+    ])
   })
 })

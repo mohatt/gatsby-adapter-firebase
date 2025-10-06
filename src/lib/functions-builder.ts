@@ -1,8 +1,17 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import type { HttpsOptions } from 'firebase-functions/v2/https'
 import type { FunctionsManifest, Reporter } from 'gatsby'
-import type { FunctionExport, PreparedFunctions } from './types.js'
-import { copyFileWithDirs, ensureEmptyDir, pLimit, relativeToPosix, isPathWithin, toPosix } from './utils.js'
+import type { FunctionExport, FunctionsArtifacts } from './types.js'
+import {
+  copyFileWithDirs,
+  ensureEmptyDir,
+  pLimit,
+  relativeToPosix,
+  isPathWithin,
+  toPosix,
+} from './utils.js'
+import { error } from 'firebase-functions/logger'
 
 export type FunctionsBuilderOptions = {
   functions: FunctionsManifest
@@ -10,25 +19,32 @@ export type FunctionsBuilderOptions = {
   projectRoot: string
   reporter: Reporter
   runtime: string
-  region: string
+  functionsConfig?: HttpsOptions
+  functionsConfigOverride?: Record<string, HttpsOptions>
 }
 
 export type FunctionsBuilderResult = {
-  prepared: PreparedFunctions | null
+  artifacts: FunctionsArtifacts | null
   idMap: Map<string, string>
 }
 
-const sanitizeFunctionName = (value: string, used: Set<string>) => {
-  const base = value
-    .replace(/[^A-Za-z0-9_$]/g, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^_+/, '')
-  const prefixed = /^[A-Za-z_$]/.test(base) ? base || 'fn' : `fn_${base}`
-  let candidate = prefixed || 'fn'
+const generateFunctionName = (id: string, used: Set<string>) => {
+  const base = id
+    .toLowerCase()
+    .replace(/[^a-z0-9_$]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  const prefixed = /^[a-z_$]/.test(base) ? base : `gatsby_fn_${base}`
+
+  let candidate = prefixed
   let counter = 1
   while (used.has(candidate)) {
     candidate = `${prefixed}_${counter++}`
   }
+
+  // Enforce max length (Cloud Function limit)
+  if (candidate.length > 63) candidate = candidate.slice(0, 63)
+
   used.add(candidate)
   return candidate
 }
@@ -54,10 +70,36 @@ const runtimeToEngineConstraint = (runtime: string) => {
   return `>=${major}`
 }
 
+const serializeConfig = (value: HttpsOptions | undefined) => JSON.stringify(value, null, 2)
+
+const serializeConfigOverride = (
+  exportsInfo: FunctionExport[],
+  overrides: Record<string, HttpsOptions>,
+) => {
+  const relevant = exportsInfo.reduce<Record<string, HttpsOptions>>((accu, fn) => {
+    const override = overrides[fn.originalId]
+    if (override) accu[fn.originalId] = override
+    return accu
+  }, {})
+  return JSON.stringify(relevant, null, 2)
+}
+
 export const prepareFunctionsWorkspace = async (
   options: FunctionsBuilderOptions,
 ): Promise<FunctionsBuilderResult> => {
-  const { functions, outDir, projectRoot, reporter, runtime } = options
+  const {
+    functions,
+    outDir,
+    projectRoot,
+    reporter,
+    runtime,
+    functionsConfig,
+    functionsConfigOverride = {},
+  } = options
+
+  if (!isPathWithin(projectRoot, outDir)) {
+    throw new Error('[gatsby-adapter-firebase] functionsOutDir must be within the project root')
+  }
 
   const idMap = new Map<string, string>()
 
@@ -66,14 +108,10 @@ export const prepareFunctionsWorkspace = async (
       await fs.rm(outDir, { recursive: true, force: true })
     } catch (error) {
       reporter.warn(
-        `[gatsby-adapter-firebase] Failed to clean empty functions directory ${toPosix(outDir)}: ${(error as Error).message}`,
+        `[gatsby-adapter-firebase] Failed to clean empty functions directory ${outDir}: ${String(error)}`,
       )
     }
-    return { prepared: null, idMap }
-  }
-
-  if (!isPathWithin(projectRoot, outDir)) {
-    throw new Error('[gatsby-adapter-firebase] functionsOutDir must be within the project root')
+    return { artifacts: null, idMap }
   }
 
   await ensureEmptyDir(outDir)
@@ -89,7 +127,7 @@ export const prepareFunctionsWorkspace = async (
       )
       continue
     }
-    const deployedId = sanitizeFunctionName(fn.functionId, usedNames)
+    const deployedId = generateFunctionName(fn.functionId, usedNames)
     idMap.set(fn.functionId, deployedId)
 
     const entryAbsolute = normalizeRelativePath(fn.pathToEntryPoint, projectRoot)
@@ -114,7 +152,7 @@ export const prepareFunctionsWorkspace = async (
             copiedFiles.add(toPosix(relativeFromRoot))
             return { file, isEntry, error: null }
           } catch (error) {
-            return { file, isEntry, error: String(error) }
+            return { file, isEntry, error: error.message }
           }
         }),
       ),
@@ -125,9 +163,11 @@ export const prepareFunctionsWorkspace = async (
       // Skip the function if entry file is missing, or +2 required files are missing
       const skip = missingFiles.some(({ isEntry }, i) => isEntry || i > 1)
       reporter.warn(
-        `[gatsby-adapter-firebase] ${skip ? 'Skipping function' : 'Function'} \`${fn.functionId}\`: some required files could not be copied:${
-          [''].concat(missingFiles.map(({ file, error }) => `${toPosix(file)}: ${error}`)).join('\n · ')
-        }`,
+        `[gatsby-adapter-firebase] ${skip ? 'Skipping function' : 'Function'} \`${fn.functionId}\`: some required files could not be copied:${[
+          '',
+        ]
+          .concat(missingFiles.map(({ file, error }) => `${toPosix(file)}: ${error}`))
+          .join('\n · ')}`,
       )
       if (skip) {
         idMap.delete(fn.functionId)
@@ -151,34 +191,49 @@ export const prepareFunctionsWorkspace = async (
       )
     }
     idMap.clear()
-    return { prepared: null, idMap }
+    return { artifacts: null, idMap }
   }
 
-  const indexSource = `// Auto-generated by gatsby-adapter-firebase. Do not edit.
-'use strict'
-
-const { onRequest } = require('firebase-functions/v2/https')
-
-const defaultOptions = {
-  region: ${JSON.stringify(options.region)}
-}
-
-const isPlainObject = (value) => Object.prototype.toString.call(value) === '[object Object]'
-
-const createHttpsFunction = (handlerExports) => {
-  const handler = handlerExports?.default || handlerExports
-  const handlerOptions = handlerExports?.options
-  const options = isPlainObject(handlerOptions)
-    ? { ...defaultOptions, ...handlerOptions }
-    : defaultOptions
-  return onRequest(options, handler)
-}
-
-${exportsInfo
-    .map((fn) => `exports.${fn.deployedId} = createHttpsFunction(require('${fn.relativeEntry}'))`)
-    .join('\n')}
-`
-  await fs.writeFile(path.join(outDir, 'index.js'), indexSource, 'utf8')
+  const indexLines = [
+    '// Auto-generated by gatsby-adapter-firebase. Do not edit.',
+    "'use strict'",
+    '',
+    "const { onRequest } = require('firebase-functions/v2/https')",
+    '',
+    `const DEFAULT_OPTIONS = ${serializeConfig(functionsConfig)}`,
+    `const OVERRIDE_OPTIONS = ${serializeConfigOverride(exportsInfo, functionsConfigOverride)}`,
+    '',
+    'const isPlainObject = (value) => Object.prototype.toString.call(value) === "[object Object]"',
+    '',
+    'const mergeOptions = (...sources) => {',
+    '  const filtered = sources.filter((candidate) => isPlainObject(candidate))',
+    '  if (filtered.length === 0) return undefined',
+    '  return Object.assign({}, ...filtered)',
+    '}',
+    '',
+    'const createHttpsFunction = (handlerExports, functionId) => {',
+    '  const handler = handlerExports?.default || handlerExports',
+    '  const options = mergeOptions(',
+    '    DEFAULT_OPTIONS,',
+    '    OVERRIDE_OPTIONS[functionId],',
+    '    handlerExports?.options,',
+    '  )',
+    '  if (options) {',
+    '    return onRequest(options, handler)',
+    '  }',
+    '  return onRequest(handler)',
+    '}',
+    '',
+    ...exportsInfo.map(
+      (fn) =>
+        `exports.${fn.deployedId} = createHttpsFunction(require('${fn.relativeEntry}'), '${fn.originalId}')`,
+    ),
+    '',
+  ]
+  const indexFile = path.join(outDir, 'index.js')
+  await fs.writeFile(indexFile, indexLines.join('\n'), 'utf8').catch((error) => {
+    throw new Error(`[gatsby-adapter-firebase] Failed to write ${indexFile}: ${String(error)}`)
+  })
 
   const enginesEntry = runtimeToEngineConstraint(runtime)
   const packageJson = {
@@ -189,11 +244,10 @@ ${exportsInfo
     },
   }
 
-  await fs.writeFile(
-    path.join(outDir, 'package.json'),
-    JSON.stringify(packageJson, null, 2),
-    'utf8',
-  )
+  const pkgFile = path.join(outDir, 'package.json')
+  await fs.writeFile(pkgFile, JSON.stringify(packageJson, null, 2), 'utf8').catch((error) => {
+    throw new Error(`[gatsby-adapter-firebase] Failed to write ${pkgFile}: ${String(error)}`)
+  })
 
-  return { prepared: { exports: exportsInfo, copiedFiles }, idMap }
+  return { artifacts: { exports: exportsInfo, copiedFiles }, idMap }
 }

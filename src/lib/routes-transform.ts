@@ -1,3 +1,4 @@
+import type { HttpsOptions } from 'firebase-functions/v2/https'
 import type { RoutesManifest, Reporter } from 'gatsby'
 import type { HeaderKV, HostingHeader, HostingRedirect, HostingRewrite } from './types.js'
 
@@ -6,7 +7,8 @@ export interface TransformRoutesOptions {
   pathPrefix: string
   reporter: Reporter
   functionIdMap: Map<string, string>
-  region: string
+  functionsConfig?: HttpsOptions
+  functionsConfigOverride?: Record<string, HttpsOptions>
 }
 
 export interface TransformRoutesResult {
@@ -64,8 +66,28 @@ const normalizeDestination = (value: string, pathPrefix: string) => {
   return `${collapsed}${suffix ?? ''}`
 }
 
+const extractRegion = (options?: HttpsOptions): string | null => {
+  const region = options?.region
+  if (typeof region === 'string') return region
+  if (Array.isArray(region)) return region[0]
+  if (region && typeof region === 'object') {
+    if ('value' in region && typeof region.value === 'function') {
+      const serialized = region.value()
+      if (typeof serialized === 'string') return serialized
+      if (Array.isArray(serialized)) return serialized[0]
+    }
+    if ('toJSON' in region && typeof region.toJSON === 'function') {
+      const serialized = region.toJSON()
+      if (typeof serialized === 'string') return serialized
+      if (Array.isArray(serialized)) return serialized[0]
+    }
+  }
+  return null
+}
+
 export const transformRoutes = (options: TransformRoutesOptions): TransformRoutesResult => {
-  const { routes, pathPrefix, reporter, functionIdMap, region } = options
+  const { routes, pathPrefix, reporter, functionIdMap, functionsConfig, functionsConfigOverride } =
+    options
 
   const headerAccumulator = new Map<string, Map<string, HeaderKV>>()
 
@@ -111,10 +133,18 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
         )
         continue
       }
-      rewrites.push({
+      const overrideOptions = functionsConfigOverride?.[route.functionId]
+      const resolvedRegion = extractRegion(overrideOptions) ?? extractRegion(functionsConfig)
+
+      const rewrite: HostingRewrite = {
         source,
-        function: { functionId: deployedId, region, pinTag: true },
-      })
+        function: {
+          functionId: deployedId,
+          pinTag: true,
+          ...(resolvedRegion ? { region: resolvedRegion } : {}),
+        },
+      }
+      rewrites.push(rewrite)
       continue
     }
 

@@ -4,29 +4,7 @@ import { createRequire } from 'node:module'
 import type { PackageJson } from './types.js'
 
 export const toArray = <T>(value: T | T[] | undefined): T[] =>
-  Array.isArray(value) ? value : value ? [value] : []
-
-export const readJsonIfExists = async <T>(file: string): Promise<T | undefined> => {
-  try {
-    const raw = await fs.readFile(file, 'utf8')
-    return JSON.parse(raw) as T
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return undefined
-    }
-    throw error
-  }
-}
-
-export const writeIfChanged = async (file: string, contents: string) => {
-  const previous = await fs.readFile(file, 'utf8').catch(() => '')
-  if (previous === contents) {
-    return false
-  }
-  await fs.mkdir(path.dirname(file), { recursive: true })
-  await fs.writeFile(file, contents)
-  return true
-}
+  Array.isArray(value) ? value : value != null ? [value] : []
 
 export const ensureEmptyDir = async (dir: string) => {
   await fs.rm(dir, { recursive: true, force: true })

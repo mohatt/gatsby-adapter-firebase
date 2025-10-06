@@ -1,17 +1,16 @@
 import path from 'node:path'
 import type { AdapterInit } from 'gatsby'
-import type { AdapterOptions } from './lib/types.js'
+import type { AdapterOptions, HostingEntry, FunctionsEntry } from './lib/types.js'
 import { prepareFunctionsWorkspace } from './lib/functions-builder.js'
 import { transformRoutes } from './lib/routes-transform.js'
 import { mergeFirebaseJson } from './lib/firebase-merge.js'
-import { readPackageJson, relativeToPosix, toPosix } from './lib/utils.js'
+import { readPackageJson, relativeToPosix } from './lib/utils.js'
 
 const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
   const hostingTarget = adapterOptions.hostingTarget ?? 'gatsby'
-  const region = adapterOptions.region ?? 'us-central1'
-  const functionsConfig = adapterOptions.functionsConfig ?? {}
+  const functionsConfig = adapterOptions.functionsConfig
   const functionsConfigOverride = adapterOptions.functionsConfigOverride ?? {}
-  const functionsOutDirOption = adapterOptions.functionsOutDir ?? '.firebase/functions'
+  const functionsOutDirRel = adapterOptions.functionsOutDir ?? '.firebase/functions'
   const functionsCodebase = adapterOptions.functionsCodebase ?? 'gatsby'
   const functionsRuntime = adapterOptions.functionsRuntime ?? 'nodejs20'
 
@@ -20,63 +19,69 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
 
     async adapt({ routesManifest, functionsManifest, pathPrefix, reporter }) {
       const projectRoot = process.cwd()
-      const functionsOutDir = path.resolve(projectRoot, functionsOutDirOption)
-      const firebaseJsonPath = path.join(projectRoot, 'firebase.json')
+      const functionsOutDir = path.resolve(projectRoot, functionsOutDirRel)
+      const firebaseJsonFile = path.join(projectRoot, 'firebase.json')
 
-      const { prepared, idMap } = await prepareFunctionsWorkspace({
-        functions: functionsManifest,
+      const fnResult = await prepareFunctionsWorkspace({
+        functions: functionsManifest ?? [],
         outDir: functionsOutDir,
         projectRoot,
         reporter,
         runtime: functionsRuntime,
-        region,
+        functionsConfig,
+        functionsConfigOverride,
       })
 
-      const { redirects, rewrites, headers } = transformRoutes({
-        routes: routesManifest,
+      const hostingResult = transformRoutes({
+        routes: routesManifest ?? [],
         pathPrefix,
         reporter,
-        functionIdMap: idMap,
-        region,
+        functionIdMap: fnResult.idMap,
+        functionsConfig,
+        functionsConfigOverride,
       })
 
-      const functionsEntry = prepared
-        ? {
-            codebase: functionsCodebase,
-            source: relativeToPosix(projectRoot, functionsOutDir) || '.',
-            runtime: functionsRuntime,
-          }
-        : undefined
+      const functionsEntry: FunctionsEntry = fnResult.artifacts && {
+        codebase: functionsCodebase,
+        source: relativeToPosix(projectRoot, functionsOutDir) || '.',
+        runtime: functionsRuntime,
+      }
 
-      const { wrote } = await mergeFirebaseJson({
-        filePath: firebaseJsonPath,
-        hostingTarget,
-        publicDir: 'public',
-        redirects,
-        rewrites,
-        headers,
+      const hostingEntry: HostingEntry = {
+        target: hostingTarget,
+        public: 'public',
+        redirects: hostingResult.redirects,
+        rewrites: hostingResult.rewrites,
+        headers: hostingResult.headers,
+      }
+
+      const configResult = await mergeFirebaseJson(firebaseJsonFile, {
+        hostingEntry,
         functionsEntry,
       })
 
+      const functionExports = fnResult.artifacts?.exports
       const infoParts = [
         `target=${hostingTarget}`,
-        `redirects=${redirects.length}`,
-        `rewrites=${rewrites.length}`,
-        `headers=${headers.length}`,
-        `functions=${prepared?.exports.length ?? 0}`,
+        `redirects=${hostingResult.redirects.length}`,
+        `rewrites=${hostingResult.rewrites.length}`,
+        `headers=${hostingResult.headers.length}`,
+        `functions=${functionExports?.length ?? 0}`,
       ]
       reporter.info(
-        `[gatsby-adapter-firebase] firebase.json ${wrote ? 'updated' : 'unchanged'} · ${
-          infoParts.join(', ')
-        } (use --verbose for breakdown)`,
+        `[gatsby-adapter-firebase] firebase.json ${
+          configResult.wrote ? 'updated' : 'unchanged'
+        } · ${infoParts.join(', ')} (use --verbose for breakdown)`,
       )
 
-      if (prepared?.exports.length) {
-        const mapped = prepared.exports.map((fn) => `${fn.relativeEntry} → ${region}-${fn.deployedId}`)
+      if (functionExports?.length) {
+        const mapped = functionExports.map((fn) => `${fn.relativeEntry} → ${fn.deployedId}`)
         reporter.verbose(
-          `[gatsby-adapter-firebase] Functions codebase: ${
-            [`${functionsCodebase} → ${toPosix(functionsOutDir)}`].concat(mapped).join('\n · ')
-          }`,
+          `[gatsby-adapter-firebase] Functions codebase: ${[
+            `${functionsCodebase} → ${functionsOutDir}`,
+          ]
+            .concat(mapped)
+            .join('\n · ')}`,
         )
       } else {
         reporter.verbose(

@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "noImplicitReturns": true,
     "noUnusedParameters": true,
-    "noEmit": true,
+    "noEmit": true
   },
   "include": ["src", "*.ts"]
 }

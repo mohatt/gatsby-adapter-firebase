@@ -27,18 +27,17 @@ Enable the adaptor in `gatsby-config.js`.
 
 ```js
 // `gatsby-config.js`
-import firebaseAdapter from "gatsby-adapter-firebase";
+import firebaseAdapter from 'gatsby-adapter-firebase'
 
 /** @type {import('gatsby').GatsbyConfig} */
 export default {
   adapter: firebaseAdapter(),
-};
+}
 ```
 
 ## Options
 
 Options here.
-
 
 ## License
 

@@ -7,7 +7,6 @@ export interface HeaderKV {
 
 export interface AdapterOptions {
   hostingTarget?: string
-  region?: string
   functionsOutDir?: string
   functionsCodebase?: string
   functionsRuntime?: string
@@ -43,7 +42,7 @@ export type HostingDestinationRewrite = {
 
 export type HostingRewrite = HostingFunctionRewrite | HostingDestinationRewrite
 
-export type HostingConfig = {
+export type HostingEntry = {
   target: string
   public?: string
   ignore?: string[]
@@ -61,7 +60,7 @@ export type FunctionsEntry = {
 }
 
 export type FirebaseJson = {
-  hosting?: HostingConfig | HostingConfig[]
+  hosting?: HostingEntry | HostingEntry[]
   functions?: FunctionsEntry | FunctionsEntry[]
   [k: string]: unknown
 }
@@ -72,7 +71,7 @@ export type FunctionExport = {
   relativeEntry: string
 }
 
-export type PreparedFunctions = {
+export type FunctionsArtifacts = {
   exports: FunctionExport[]
   copiedFiles: Set<string>
 }
