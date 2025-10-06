@@ -4,12 +4,13 @@ import type { AdapterOptions } from './lib/types.js'
 import { prepareFunctionsWorkspace } from './lib/functions-builder.js'
 import { transformRoutes } from './lib/routes-transform.js'
 import { mergeFirebaseJson } from './lib/firebase-merge.js'
-import { readPackageJson, relativeTo, toPosix } from './lib/utils.js'
+import { readPackageJson, relativeToPosix, toPosix } from './lib/utils.js'
 
 const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
-  const target = adapterOptions.target ?? 'gatsby'
+  const hostingTarget = adapterOptions.hostingTarget ?? 'gatsby'
   const region = adapterOptions.region ?? 'us-central1'
-  const publicDir = adapterOptions.publicDir ?? 'public'
+  const functionsConfig = adapterOptions.functionsConfig ?? {}
+  const functionsConfigOverride = adapterOptions.functionsConfigOverride ?? {}
   const functionsOutDirOption = adapterOptions.functionsOutDir ?? '.firebase/functions'
   const functionsCodebase = adapterOptions.functionsCodebase ?? 'gatsby'
   const functionsRuntime = adapterOptions.functionsRuntime ?? 'nodejs20'
@@ -28,6 +29,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
         projectRoot,
         reporter,
         runtime: functionsRuntime,
+        region,
       })
 
       const { redirects, rewrites, headers } = transformRoutes({
@@ -41,15 +43,15 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
       const functionsEntry = prepared
         ? {
             codebase: functionsCodebase,
-            source: relativeTo(projectRoot, functionsOutDir) || '.',
+            source: relativeToPosix(projectRoot, functionsOutDir) || '.',
             runtime: functionsRuntime,
           }
         : undefined
 
       const { wrote } = await mergeFirebaseJson({
         filePath: firebaseJsonPath,
-        hostingTarget: target,
-        publicDir,
+        hostingTarget,
+        publicDir: 'public',
         redirects,
         rewrites,
         headers,
@@ -57,7 +59,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
       })
 
       const infoParts = [
-        `target=${target}`,
+        `target=${hostingTarget}`,
         `redirects=${redirects.length}`,
         `rewrites=${rewrites.length}`,
         `headers=${headers.length}`,
@@ -70,9 +72,9 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
       )
 
       if (prepared?.exports.length) {
-        const mapped = prepared.exports.map((fn) => `${fn.originalId} → ${fn.deployedId}`)
+        const mapped = prepared.exports.map((fn) => `${fn.relativeEntry} → ${region}-${fn.deployedId}`)
         reporter.verbose(
-          `[gatsby-adapter-firebase] functions codebase ${
+          `[gatsby-adapter-firebase] Functions codebase: ${
             [`${functionsCodebase} → ${toPosix(functionsOutDir)}`].concat(mapped).join('\n · ')
           }`,
         )

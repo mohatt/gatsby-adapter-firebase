@@ -1,15 +1,18 @@
+import type { HttpsOptions } from 'firebase-functions/v2/https'
+
 export interface HeaderKV {
   key: string
   value: string
 }
 
 export interface AdapterOptions {
-  target?: string
+  hostingTarget?: string
   region?: string
-  publicDir?: string
   functionsOutDir?: string
   functionsCodebase?: string
   functionsRuntime?: string
+  functionsConfig?: HttpsOptions
+  functionsConfigOverride?: Record<string, HttpsOptions>
   excludeDatastoreFromEngineFunction?: boolean
 }
 
