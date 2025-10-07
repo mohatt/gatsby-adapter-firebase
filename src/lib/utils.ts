@@ -1,6 +1,10 @@
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import type { PackageJson } from './types.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export const toArray = <T>(value: T | T[] | undefined): T[] =>
   Array.isArray(value) ? value : value != null ? [value] : []
@@ -16,9 +20,13 @@ export const isPathWithin = (parent: string, child: string) => {
   return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
 }
 
-export const readPackageJson = (): PackageJson => {
-  const require = createRequire(import.meta.url)
+export const resolveDistPath = (distPath: string) => {
   // assumes the file is under `dist/`
+  return path.join(__dirname, distPath)
+}
+
+export const readPackageJson = (): PackageJson => {
+  const require = createRequire(__filename)
   return require('../package.json')
 }
 

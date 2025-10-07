@@ -1,24 +1,30 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import type { HttpsOptions } from 'firebase-functions/v2/https'
-import type { FunctionsManifest } from 'gatsby'
-import type { FunctionExport, FunctionsArtifacts } from './types.js'
-import { pLimit, relativeToPosix, isPathWithin, toPosix } from './utils.js'
+import type { FunctionsManifest, RoutesManifest } from 'gatsby'
+import {
+  FunctionEntry,
+  FunctionVariants,
+  FunctionsWorkspace,
+  FunctionsRuntimeExport,
+} from './types.js'
+import type { FunctionConfig } from './runtime/types.js'
+import { pLimit, relativeToPosix, isPathWithin, toPosix, resolveDistPath } from './utils.js'
 import { AdaptorReporter, AdaptorError } from './reporter.js'
 
-export type FunctionsBuilderOptions = {
-  functions: FunctionsManifest
+export type BuildFunctionsArgs = {
+  functionsManifest: Readonly<FunctionsManifest>
+  routesManifest: Readonly<RoutesManifest>
   outDir: string
   projectRoot: string
   reporter: AdaptorReporter
   runtime: string
-  functionsConfig?: HttpsOptions
-  functionsConfigOverride?: Record<string, HttpsOptions>
+  functionsConfig?: FunctionConfig
+  functionsConfigOverride?: Record<string, FunctionConfig>
 }
 
-export type FunctionsBuilderResult = {
-  artifacts: FunctionsArtifacts | null
-  idMap: Map<string, string>
+export type BuildFunctionsResult = {
+  workspace?: FunctionsWorkspace | null
+  functionsMap: ReadonlyMap<string, FunctionVariants>
 }
 
 const MAX_FUNCTION_NAME_LENGTH = 63
@@ -83,46 +89,36 @@ const runtimeToEngineConstraint = (runtime: string) => {
   return `>=${major}`
 }
 
-const serializeConfig = (value: HttpsOptions | undefined) => JSON.stringify(value, null, 2)
-
-const serializeConfigOverride = (
-  exportsInfo: FunctionExport[],
-  overrides: Record<string, HttpsOptions>,
-) => {
-  const relevant = exportsInfo.reduce<Record<string, HttpsOptions>>((accu, fn) => {
-    const override = overrides[fn.originalId]
-    if (override) accu[fn.originalId] = override
-    return accu
-  }, {})
-  return JSON.stringify(relevant, null, 2)
+const resolveFunctionConfig = <T extends FunctionConfig>(base?: T, override?: T): T | undefined => {
+  const result = { ...base, ...override }
+  return Object.keys(result).length ? result : undefined
 }
 
-export const prepareFunctionsWorkspace = async (
-  options: FunctionsBuilderOptions,
-): Promise<FunctionsBuilderResult> => {
+export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFunctionsResult> => {
   const {
-    functions,
+    routesManifest,
+    functionsManifest,
     outDir,
     projectRoot,
     reporter,
     runtime,
     functionsConfig,
     functionsConfigOverride = {},
-  } = options
+  } = args
 
   if (!isPathWithin(projectRoot, outDir)) {
     throw new AdaptorError('functionsOutDir must be within the project root')
   }
 
-  const idMap = new Map<string, string>()
+  const functionsMap = new Map<string, FunctionVariants>()
 
-  if (!functions.length) {
+  if (!functionsManifest.length) {
     try {
       await fs.rm(outDir, { recursive: true, force: true })
     } catch (error) {
       reporter.warn(`Failed to clean empty functions directory ${outDir}: ${String(error)}`)
     }
-    return { artifacts: null, idMap }
+    return { workspace: null, functionsMap }
   }
 
   try {
@@ -132,19 +128,22 @@ export const prepareFunctionsWorkspace = async (
     throw new AdaptorError(`Failed to re-create functions directory ${outDir}`, error)
   }
 
+  const workspace: FunctionsWorkspace = { dir: outDir, files: [], exports: [] }
+  const cachedIds: ReadonlySet<string> = routesManifest.reduce((accu, route) => {
+    if (route.type === 'function' && route.cache) {
+      accu.add(route.functionId)
+    }
+    return accu
+  }, new Set<string>())
   const usedNames = new Set<string>()
-  const exportsInfo: FunctionExport[] = []
-  const copiedFiles = new Set<string>()
 
-  for (const fn of functions) {
-    if (idMap.has(fn.functionId)) {
+  for (const fn of functionsManifest) {
+    if (functionsMap.has(fn.functionId)) {
       reporter.warn(
         `Duplicate functionId "${fn.functionId}" detected; keeping the first definition only`,
       )
       continue
     }
-    const deployedId = generateFunctionName(fn.functionId, usedNames)
-    idMap.set(fn.functionId, deployedId)
 
     const entryAbsolute = normalizeRelativePath(fn.pathToEntryPoint, projectRoot)
     const entryRelativeFromRoot = path.relative(projectRoot, entryAbsolute)
@@ -166,7 +165,7 @@ export const prepareFunctionsWorkspace = async (
           try {
             await fs.mkdir(path.dirname(destination), { recursive: true })
             await fs.copyFile(absolute, destination)
-            copiedFiles.add(toPosix(relativeFromRoot))
+            workspace.files.push(toPosix(relativeFromRoot))
             return { file, isEntry, error: null }
           } catch (error) {
             return { file, isEntry, error: error.message }
@@ -187,19 +186,38 @@ export const prepareFunctionsWorkspace = async (
           .join('\n - ')}`,
       )
       if (skip) {
-        idMap.delete(fn.functionId)
         continue
       }
     }
 
-    exportsInfo.push({
-      originalId: fn.functionId,
-      deployedId,
-      relativeEntry: resolveEntryRelativePath(outDir, entryDestination),
-    })
+    const id = fn.functionId
+    const defaultVariant: FunctionEntry = {
+      id,
+      variant: 'default',
+      deployId: generateFunctionName(id, usedNames),
+      entryFile: resolveEntryRelativePath(outDir, entryDestination),
+      config: resolveFunctionConfig(functionsConfig, functionsConfigOverride[id]),
+    }
+
+    // Create a cached variant if the function is cached
+    let cachedVariant: FunctionEntry | undefined
+    if (cachedIds.has(id)) {
+      const cachedId = `${id}-cached`
+      cachedVariant = {
+        id: cachedId,
+        variant: 'cached',
+        deployId: generateFunctionName(cachedId, usedNames),
+        entryFile: defaultVariant.entryFile,
+        config: resolveFunctionConfig(functionsConfig, functionsConfigOverride[cachedId]),
+      }
+    }
+
+    functionsMap.set(id, { default: defaultVariant, cached: cachedVariant })
+    workspace.exports.push(defaultVariant)
+    if (cachedVariant) workspace.exports.push(cachedVariant)
   }
 
-  if (!exportsInfo.length) {
+  if (!functionsMap.size) {
     try {
       await fs.rm(outDir, { recursive: true, force: true })
     } catch (error) {
@@ -207,50 +225,52 @@ export const prepareFunctionsWorkspace = async (
         `Failed to clean functions directory ${outDir} after skipping functions: ${String(error)}`,
       )
     }
-    idMap.clear()
-    return { artifacts: null, idMap }
+    functionsMap.clear()
+    return { workspace: null, functionsMap }
   }
 
-  const indexLines = [
+  const runtimeModulePath = resolveDistPath('lib/runtime.cjs')
+  const runtimeTarget = './.adapter/runtime.cjs'
+  const runtimeTargetPath = path.join(outDir, runtimeTarget)
+  const adaptorDir = path.dirname(runtimeTargetPath)
+  await fs.mkdir(adaptorDir, { recursive: true }).catch((error) => {
+    throw new AdaptorError(`Failed to create adaptor directory ${adaptorDir}`, error)
+  })
+  await fs.copyFile(runtimeModulePath, runtimeTargetPath).catch((error) => {
+    throw new AdaptorError(`Failed to copy runtime module to ${runtimeTargetPath}`, error)
+  })
+  workspace.files.push(toPosix(path.relative(outDir, runtimeTargetPath)))
+
+  const exportLines: string[] = []
+  const runtimeImports: FunctionsRuntimeExport[] = []
+  const addFunctionExport = (factory: FunctionsRuntimeExport, fn: FunctionEntry) => {
+    if (!runtimeImports.includes(factory)) runtimeImports.push(factory)
+    exportLines.push(
+      `exports.${fn.deployId} = ${factory}(require('${fn.entryFile}'), '${fn.id}'${fn.config ? `, ${JSON.stringify(fn.config, null, 2)}` : ''})`,
+    )
+  }
+
+  functionsMap.forEach((variants) => {
+    addFunctionExport('createHttpsFunction', variants.default)
+    if (variants.cached) addFunctionExport('createCachedHttpsFunction', variants.cached)
+  })
+
+  const indexLines: string[] = [
     '// Auto-generated by gatsby-adapter-firebase. Do not edit.',
-    "'use strict'",
+    `'use strict'`,
     '',
-    "const { onRequest } = require('firebase-functions/v2/https')",
+    runtimeImports.length
+      ? `const { ${runtimeImports.join(', ')} } = require('${runtimeTarget}')`
+      : '',
     '',
-    `const DEFAULT_OPTIONS = ${serializeConfig(functionsConfig)}`,
-    `const OVERRIDE_OPTIONS = ${serializeConfigOverride(exportsInfo, functionsConfigOverride)}`,
-    '',
-    'const isPlainObject = (value) => Object.prototype.toString.call(value) === "[object Object]"',
-    '',
-    'const mergeOptions = (...sources) => {',
-    '  const filtered = sources.filter((candidate) => isPlainObject(candidate))',
-    '  if (filtered.length === 0) return undefined',
-    '  return Object.assign({}, ...filtered)',
-    '}',
-    '',
-    'const createHttpsFunction = (handlerExports, functionId) => {',
-    '  const handler = handlerExports?.default || handlerExports',
-    '  const options = mergeOptions(',
-    '    DEFAULT_OPTIONS,',
-    '    OVERRIDE_OPTIONS[functionId],',
-    '    handlerExports?.options,',
-    '  )',
-    '  if (options) {',
-    '    return onRequest(options, handler)',
-    '  }',
-    '  return onRequest(handler)',
-    '}',
-    '',
-    ...exportsInfo.map(
-      (fn) =>
-        `exports.${fn.deployedId} = createHttpsFunction(require('${fn.relativeEntry}'), '${fn.originalId}')`,
-    ),
+    ...exportLines,
     '',
   ]
   const indexFile = path.join(outDir, 'index.js')
   await fs.writeFile(indexFile, indexLines.join('\n'), 'utf8').catch((error) => {
     throw new AdaptorError(`Failed to write ${indexFile}`, error)
   })
+  workspace.files.push(toPosix(path.relative(outDir, indexFile)))
 
   const enginesEntry = runtimeToEngineConstraint(runtime)
   const packageJson = {
@@ -258,6 +278,7 @@ export const prepareFunctionsWorkspace = async (
     ...(enginesEntry ? { engines: { node: enginesEntry } } : {}),
     dependencies: {
       'firebase-functions': '^6.0.0',
+      'firebase-admin': '^12.0.0',
     },
   }
 
@@ -265,6 +286,7 @@ export const prepareFunctionsWorkspace = async (
   await fs.writeFile(pkgFile, JSON.stringify(packageJson, null, 2), 'utf8').catch((error) => {
     throw new AdaptorError(`Failed to write ${pkgFile}`, error)
   })
+  workspace.files.push(toPosix(path.relative(outDir, pkgFile)))
 
-  return { artifacts: { exports: exportsInfo, copiedFiles }, idMap }
+  return { workspace, functionsMap }
 }

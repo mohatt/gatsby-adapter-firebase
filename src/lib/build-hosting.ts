@@ -1,21 +1,26 @@
-import type { HttpsOptions } from 'firebase-functions/v2/https'
 import type { RoutesManifest } from 'gatsby'
-import type { HeaderKV, HostingHeader, HostingRedirect, HostingRewrite } from './types.js'
+import {
+  HeaderKV,
+  FirebaseHostingHeader,
+  FirebaseHostingRedirect,
+  FirebaseHostingRewrite,
+  FirebaseHostingFunctionRewrite,
+  FunctionVariants,
+} from './types.js'
+import type { FunctionConfig } from './runtime/types.js'
 import type { AdaptorReporter } from './reporter.js'
 
-export interface TransformRoutesOptions {
-  routes: RoutesManifest
+export interface BuildHostingArgs {
+  routesManifest: RoutesManifest
   pathPrefix: string
   reporter: AdaptorReporter
-  functionIdMap: Map<string, string>
-  functionsConfig?: HttpsOptions
-  functionsConfigOverride?: Record<string, HttpsOptions>
+  functionsMap: ReadonlyMap<string, FunctionVariants>
 }
 
-export interface TransformRoutesResult {
-  headers: HostingHeader[]
-  redirects: HostingRedirect[]
-  rewrites: HostingRewrite[]
+export interface BuildHostingResult {
+  headers: FirebaseHostingHeader[]
+  redirects: FirebaseHostingRedirect[]
+  rewrites: FirebaseHostingRewrite[]
 }
 
 const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
@@ -67,7 +72,8 @@ const normalizeDestination = (value: string, pathPrefix: string) => {
   return `${collapsed}${suffix ?? ''}`
 }
 
-const extractRegion = (options?: HttpsOptions): string | null => {
+const extractRegion = (options?: FunctionConfig): string | null => {
+  if (!options) return null
   const region = options?.region
   if (typeof region === 'string') return region
   if (Array.isArray(region)) return region[0]
@@ -75,13 +81,11 @@ const extractRegion = (options?: HttpsOptions): string | null => {
   return null
 }
 
-export const transformRoutes = (options: TransformRoutesOptions): TransformRoutesResult => {
-  const { routes, pathPrefix, reporter, functionIdMap, functionsConfig, functionsConfigOverride } =
-    options
-
+export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
+  const { routesManifest, pathPrefix, reporter, functionsMap } = args
   const headerAccumulator = new Map<string, Map<string, HeaderKV>>()
-  const redirects: HostingRedirect[] = []
-  const rewrites: HostingRewrite[] = []
+  const redirects: FirebaseHostingRedirect[] = []
+  const rewrites: FirebaseHostingRewrite[] = []
 
   const addHeaders = (source: string, entries: HeaderKV[]) => {
     if (!entries.length) return
@@ -95,27 +99,33 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
     }
   }
 
-  for (const route of routes) {
+  for (const route of routesManifest) {
     const { path: routePath, suffix: routeSuffix } = splitLocation(route.path)
     const source = normalizeSource(routePath, pathPrefix)
 
     if (route.type === 'function') {
-      const deployedId = functionIdMap.get(route.functionId)
-      if (!deployedId) {
+      const variants = functionsMap.get(route.functionId)
+      if (!variants) {
         reporter.warn(
           `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${source}`,
         )
         continue
       }
-      const overrideOptions = functionsConfigOverride?.[route.functionId]
-      const resolvedRegion = extractRegion(overrideOptions) ?? extractRegion(functionsConfig)
+      if (route.cache && !variants.cached) {
+        reporter.warn(
+          `Function route ${route.path} -> "${route.functionId}" is marked cache=true but cached variant could not be generated; using default deployment.`,
+        )
+      }
+      const functionEntry = route.cache && variants.cached ? variants.cached : variants.default
+      const { deployId, config } = functionEntry
+      const region = extractRegion(config)
 
-      const rewrite: HostingRewrite = {
+      const rewrite: FirebaseHostingFunctionRewrite = {
         source,
         function: {
-          functionId: deployedId,
+          functionId: deployId,
           pinTag: true,
-          ...(resolvedRegion ? { region: resolvedRegion } : {}),
+          ...(region ? { region } : {}),
         },
       }
       rewrites.push(rewrite)
@@ -184,7 +194,7 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
   }
 
   // map to headers array
-  const headers: HostingHeader[] = Array.from(headerAccumulator.entries())
+  const headers: FirebaseHostingHeader[] = Array.from(headerAccumulator.entries())
     .map(([source, headerMap]) => ({ source, headers: Array.from(headerMap.values()) }))
     .sort((a, b) => a.source.localeCompare(b.source))
 

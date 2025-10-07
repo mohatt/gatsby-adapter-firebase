@@ -22,6 +22,11 @@
       "require": "./dist/index.cjs",
       "import": "./dist/index.js"
     },
+    "./lib/runtime": {
+      "types": "./dist/lib/runtime.d.ts",
+      "require": "./dist/lib/runtime.cjs",
+      "import": "./dist/lib/runtime.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
@@ -50,6 +55,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
+    "@google-cloud/storage": "^7.14.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/debug": "^4.1.12",
@@ -57,6 +63,7 @@
     "@types/node": "^20.19.19",
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.37.0",
+    "firebase-admin": "^13.5.0",
     "firebase-functions": "^6.0.0",
     "gatsby": "^5.14.6",
     "memfs": "^4.48.1",
@@ -70,10 +77,18 @@
     "vitest-memfs": "^1.5.1"
   },
   "peerDependencies": {
+    "@google-cloud/storage": ">=7.7.0",
+    "firebase-admin": ">=12.0.0",
     "firebase-functions": "^6.0.0",
     "gatsby": ">=5.12.0"
   },
   "peerDependenciesMeta": {
+    "@google-cloud/storage": {
+      "optional": true
+    },
+    "firebase-admin": {
+      "optional": true
+    },
     "firebase-functions": {
       "optional": true
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { RoutesManifest } from 'gatsby'
-import { transformRoutes } from '../src/lib/routes-transform.js'
+import type { FunctionVariants } from '../src/lib/types.js'
+import { buildHosting } from '../src/lib/build-hosting.js'
 import { AdaptorReporter } from '../src/lib/reporter.js'
 
 const createReporter = () => {
@@ -25,10 +26,11 @@ const createReporter = () => {
   return { adaptor: new AdaptorReporter(gatsbyReporter), gatsby: gatsbyReporter }
 }
 
-describe('transformRoutes', () => {
+describe('buildHosting()', () => {
   it('converts Gatsby routes into Firebase hosting rules', () => {
     const routes: RoutesManifest = [
       { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
+      { type: 'function', path: '/ssr-deferred', functionId: 'ssr-engine', cache: true },
       { type: 'redirect', path: '/docs/*', toPath: '/docs/index', status: 200, headers: [] },
       { type: 'redirect', path: '/old', toPath: '/new', status: 301, headers: [] },
       { type: 'redirect', path: '/legacy?tag=:id', toPath: '/blog/:id', status: 301, headers: [] },
@@ -41,18 +43,32 @@ describe('transformRoutes', () => {
     ]
 
     const { adaptor: reporter, gatsby } = createReporter()
+    const functionsMap = new Map<string, FunctionVariants>()
+    functionsMap.set('ssr-engine', {
+      default: { id: 'ssr-engine', deployId: 'ssr_engine', variant: 'default', entryFile: 'xx' },
+      cached: {
+        id: 'ssr-engine-cached',
+        deployId: 'ssr_engine_cached',
+        variant: 'cached',
+        entryFile: 'xx',
+      },
+    })
 
-    const { rewrites, redirects, headers } = transformRoutes({
-      routes,
+    const { rewrites, redirects, headers } = buildHosting({
+      routesManifest: routes,
       pathPrefix: '',
       reporter,
-      functionIdMap: new Map([['ssr-engine', 'ssr_engine']]),
+      functionsMap,
     })
 
     expect(rewrites).toEqual([
       {
         source: '/ssr',
         function: { functionId: 'ssr_engine', pinTag: true },
+      },
+      {
+        source: '/ssr-deferred',
+        function: { functionId: 'ssr_engine_cached', pinTag: true },
       },
       {
         source: '/docs/**',
@@ -87,19 +103,38 @@ describe('transformRoutes', () => {
     ]
 
     const { adaptor: reporter } = createReporter()
+    const functionsMap = new Map<string, FunctionVariants>()
+    functionsMap.set('ssr-engine', {
+      default: {
+        id: 'ssr-engine',
+        deployId: 'ssr_engine',
+        variant: 'default',
+        entryFile: 'xx',
+        config: { region: 'asia-northeast1' },
+      },
+      cached: {
+        id: 'ssr-engine-cached',
+        deployId: 'ssr_engine_cached',
+        variant: 'cached',
+        entryFile: 'xx',
+        config: { region: 'europe-west1' },
+      },
+    })
+    functionsMap.set('hello-world', {
+      default: {
+        id: 'hello-world',
+        deployId: 'hello_world',
+        variant: 'default',
+        entryFile: 'yy',
+        config: { region: 'europe-west1' },
+      },
+    })
 
-    const { rewrites } = transformRoutes({
-      routes,
+    const { rewrites } = buildHosting({
+      routesManifest: routes,
       pathPrefix: '',
       reporter,
-      functionIdMap: new Map([
-        ['ssr-engine', 'ssr_engine'],
-        ['hello-world', 'hello_world'],
-      ]),
-      functionsConfig: { region: 'europe-west1' },
-      functionsConfigOverride: {
-        'ssr-engine': { region: 'asia-northeast1' },
-      },
+      functionsMap,
     })
 
     expect(rewrites).toEqual([
@@ -112,5 +147,35 @@ describe('transformRoutes', () => {
         function: { functionId: 'hello_world', pinTag: true, region: 'europe-west1' },
       },
     ])
+  })
+
+  it('warns when cached route has no cached variant', () => {
+    const routes: RoutesManifest = [
+      { type: 'function', path: '/dsg', functionId: 'ssr-engine', cache: true },
+    ]
+
+    const { adaptor: reporter, gatsby } = createReporter()
+    const functionsMap = new Map<string, FunctionVariants>()
+    functionsMap.set('ssr-engine', {
+      default: { id: 'ssr-engine', deployId: 'ssr_engine', variant: 'default', entryFile: 'xx' },
+    })
+
+    const { rewrites } = buildHosting({
+      routesManifest: routes,
+      pathPrefix: '',
+      reporter,
+      functionsMap,
+    })
+
+    expect(rewrites).toEqual([
+      {
+        source: '/dsg',
+        function: { functionId: 'ssr_engine', pinTag: true },
+      },
+    ])
+
+    expect(gatsby.warn).toHaveBeenCalledWith(
+      expect.stringContaining('cache=true but cached variant could not be generated'),
+    )
   })
 })

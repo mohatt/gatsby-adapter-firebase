@@ -1,9 +1,10 @@
 import path from 'node:path'
 import type { AdapterInit } from 'gatsby'
-import type { AdapterOptions, HostingEntry, FunctionsEntry } from './lib/types.js'
-import { prepareFunctionsWorkspace } from './lib/functions-builder.js'
-import { transformRoutes } from './lib/routes-transform.js'
-import { mergeFirebaseJson } from './lib/firebase-merge.js'
+import type { AdapterOptions, FirebaseHostingJson, FirebaseFunctionsJson } from './lib/types.js'
+import { AdaptorReporter } from './lib/reporter.js'
+import { buildFunctions } from './lib/build-functions.js'
+import { buildHosting } from './lib/build-hosting.js'
+import { buildConfig } from './lib/build-config.js'
 import { readPackageJson, relativeToPosix } from './lib/utils.js'
 import { AdaptorReporter } from './lib/reporter.js'
 
@@ -25,11 +26,12 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
       const firebaseJsonFile = path.join(projectRoot, 'firebase.json')
       const reporter = new AdaptorReporter(gatsbyReporter)
 
-      const [fnResult, fnErr] = await reporter
+      const [functionsResult, functionsErr] = await reporter
         .activity('buildFunctions', 'Building functions workspace')
         .run(async (setStatus) => {
-          const result = await prepareFunctionsWorkspace({
-            functions: functionsManifest ?? [],
+          const result = await buildFunctions({
+            routesManifest,
+            functionsManifest,
             outDir: functionsOutDir,
             projectRoot,
             reporter,
@@ -38,17 +40,17 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
             functionsConfigOverride,
           })
 
-          const functionExports = result.artifacts?.exports
-          if (functionExports?.length) {
+          const fnExports = result.workspace?.exports
+          if (fnExports?.length) {
             const infoParts = [
               `codebase=${functionsCodebase}`,
-              `functions=${functionExports.length} (use --verbose for breakdown)`,
+              `functions=${fnExports.length} (use --verbose for breakdown)`,
             ]
             setStatus(infoParts.join(', '))
 
             reporter.verbose(
               `Functions codebase: ${[`${functionsCodebase} → ${functionsOutDir}`]
-                .concat(functionExports.map((fn) => `${fn.relativeEntry} → ${fn.deployedId}`))
+                .concat(fnExports.map((fn) => `${fn.entryFile} → ${fn.deployId}`))
                 .join('\n - ')}`,
             )
           } else {
@@ -57,18 +59,16 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
 
           return result
         })
-      if (fnErr) return
+      if (functionsErr) return
 
       const [hostingResult, hostingErr] = await reporter
-        .activity('transformRoutes', 'Building hosting config')
+        .activity('buildHosting', 'Building hosting config')
         .run((setStatus) => {
-          const result = transformRoutes({
-            routes: routesManifest ?? [],
+          const result = buildHosting({
+            routesManifest,
             pathPrefix,
             reporter,
-            functionIdMap: fnResult.idMap,
-            functionsConfig,
-            functionsConfigOverride,
+            functionsMap: functionsResult.functionsMap,
           })
 
           const infoParts = [
@@ -83,14 +83,14 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
         })
       if (hostingErr) return
 
-      await reporter.activity('writeConfig', 'Building firebase.json').run(async (setStatus) => {
-        const functionsEntry: FunctionsEntry = fnResult.artifacts && {
+      await reporter.activity('buildConfig', 'Building firebase.json').run(async (setStatus) => {
+        const functionsEntry: FirebaseFunctionsJson = functionsResult.workspace && {
           codebase: functionsCodebase,
           source: relativeToPosix(projectRoot, functionsOutDir) || '.',
           runtime: functionsRuntime,
         }
 
-        const hostingEntry: HostingEntry = {
+        const hostingEntry: FirebaseHostingJson = {
           target: hostingTarget,
           public: 'public',
           redirects: hostingResult.redirects,
@@ -98,9 +98,9 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
           headers: hostingResult.headers,
         }
 
-        const result = await mergeFirebaseJson(firebaseJsonFile, {
-          hostingEntry,
-          functionsEntry,
+        const result = await buildConfig(firebaseJsonFile, {
+          hosting: hostingEntry,
+          functions: functionsEntry,
         })
 
         setStatus(

@@ -1,4 +1,4 @@
-import type { HttpsOptions } from 'firebase-functions/v2/https'
+import type { FunctionConfig } from './runtime/types.js'
 
 export interface HeaderKV {
   key: string
@@ -10,23 +10,23 @@ export interface AdapterOptions {
   functionsOutDir?: string
   functionsCodebase?: string
   functionsRuntime?: string
-  functionsConfig?: HttpsOptions
-  functionsConfigOverride?: Record<string, HttpsOptions>
+  functionsConfig?: FunctionConfig
+  functionsConfigOverride?: Record<string, FunctionConfig>
   excludeDatastoreFromEngineFunction?: boolean
 }
 
-export type HostingRedirect = {
+export type FirebaseHostingRedirect = {
   source: string
   destination: string
   type?: number
 }
 
-export type HostingHeader = {
+export type FirebaseHostingHeader = {
   source: string
   headers: HeaderKV[]
 }
 
-export type HostingFunctionRewrite = {
+export type FirebaseHostingFunctionRewrite = {
   source: string
   function: {
     functionId: string
@@ -35,24 +35,24 @@ export type HostingFunctionRewrite = {
   }
 }
 
-export type HostingDestinationRewrite = {
+export type FirebaseHostingDestRewrite = {
   source: string
   destination: string
 }
 
-export type HostingRewrite = HostingFunctionRewrite | HostingDestinationRewrite
+export type FirebaseHostingRewrite = FirebaseHostingFunctionRewrite | FirebaseHostingDestRewrite
 
-export type HostingEntry = {
+export type FirebaseHostingJson = {
   target: string
   public?: string
   ignore?: string[]
-  redirects?: HostingRedirect[]
-  rewrites?: HostingRewrite[]
-  headers?: HostingHeader[]
+  redirects?: FirebaseHostingRedirect[]
+  rewrites?: FirebaseHostingRewrite[]
+  headers?: FirebaseHostingHeader[]
   [k: string]: unknown
 }
 
-export type FunctionsEntry = {
+export type FirebaseFunctionsJson = {
   codebase: string
   source: string
   runtime?: string
@@ -60,21 +60,35 @@ export type FunctionsEntry = {
 }
 
 export type FirebaseJson = {
-  hosting?: HostingEntry | HostingEntry[]
-  functions?: FunctionsEntry | FunctionsEntry[]
+  hosting?: FirebaseHostingJson | FirebaseHostingJson[]
+  functions?: FirebaseFunctionsJson | FirebaseFunctionsJson[]
   [k: string]: unknown
 }
 
-export type FunctionExport = {
-  originalId: string
-  deployedId: string
-  relativeEntry: string
+export type FunctionVariant = keyof FunctionVariants
+
+export type FunctionEntry = {
+  id: string
+  deployId: string
+  entryFile: string
+  variant: FunctionVariant
+  config?: FunctionConfig
 }
 
-export type FunctionsArtifacts = {
-  exports: FunctionExport[]
-  copiedFiles: Set<string>
+export type FunctionVariants = {
+  default: FunctionEntry
+  cached?: FunctionEntry
 }
+
+export type FunctionsMap = Map<string, FunctionVariants>
+export type FunctionsWorkspace = {
+  dir: string
+  files: string[]
+  exports: FunctionEntry[]
+}
+
+export type FunctionsRuntime = typeof import('./runtime.js')
+export type FunctionsRuntimeExport = keyof FunctionsRuntime
 
 export type PackageJson = {
   name: string
