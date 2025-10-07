@@ -1,20 +1,9 @@
 import path from 'node:path'
-import fs from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import type { PackageJson } from './types.js'
 
 export const toArray = <T>(value: T | T[] | undefined): T[] =>
   Array.isArray(value) ? value : value != null ? [value] : []
-
-export const ensureEmptyDir = async (dir: string) => {
-  await fs.rm(dir, { recursive: true, force: true })
-  await fs.mkdir(dir, { recursive: true })
-}
-
-export const copyFileWithDirs = async (src: string, dest: string) => {
-  await fs.mkdir(path.dirname(dest), { recursive: true })
-  await fs.copyFile(src, dest)
-}
 
 export const toPosix = (value: string) => value.split(path.sep).join('/')
 

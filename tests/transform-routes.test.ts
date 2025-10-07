@@ -1,6 +1,29 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { Reporter, RoutesManifest } from 'gatsby'
+import type { RoutesManifest } from 'gatsby'
 import { transformRoutes } from '../src/lib/routes-transform.js'
+import { AdaptorReporter } from '../src/lib/reporter.js'
+
+const createReporter = () => {
+  const gatsbyReporter = {
+    warn: vi.fn(),
+    info: vi.fn(),
+    verbose: vi.fn(),
+    panic: vi.fn().mockImplementation((err) => {
+      throw err
+    }),
+    activityTimer: () => ({
+      start: vi.fn(),
+      setStatus: vi.fn(),
+      end: vi.fn(),
+      panic: vi.fn().mockImplementation((err) => {
+        throw err
+      }),
+    }),
+    setErrorMap: vi.fn(),
+  } as unknown as import('gatsby').Reporter
+
+  return { adaptor: new AdaptorReporter(gatsbyReporter), gatsby: gatsbyReporter }
+}
 
 describe('transformRoutes', () => {
   it('converts Gatsby routes into Firebase hosting rules', () => {
@@ -17,7 +40,7 @@ describe('transformRoutes', () => {
       },
     ]
 
-    const reporter = { warn: vi.fn() } as unknown as Reporter
+    const { adaptor: reporter, gatsby } = createReporter()
 
     const { rewrites, redirects, headers } = transformRoutes({
       routes,
@@ -52,7 +75,7 @@ describe('transformRoutes', () => {
       },
     ])
 
-    expect(reporter.warn).toHaveBeenCalledWith(
+    expect(gatsby.warn).toHaveBeenCalledWith(
       expect.stringContaining('contains query parameters or hash fragments'),
     )
   })
@@ -63,10 +86,12 @@ describe('transformRoutes', () => {
       { type: 'function', path: '/api', functionId: 'hello-world' },
     ]
 
+    const { adaptor: reporter } = createReporter()
+
     const { rewrites } = transformRoutes({
       routes,
       pathPrefix: '',
-      reporter: { warn: vi.fn() } as unknown as Reporter,
+      reporter,
       functionIdMap: new Map([
         ['ssr-engine', 'ssr_engine'],
         ['hello-world', 'hello_world'],

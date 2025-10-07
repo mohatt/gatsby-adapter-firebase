@@ -73,7 +73,7 @@ export class AdaptorReporter {
    * Logs a warning message in the Gatsby CLI.
    */
   warn(message: string) {
-    const warning = `[${ADAPTOR}: ${message}`
+    const warning = `[${ADAPTOR}]: ${message}`
     this.ref.warn(warning)
   }
 

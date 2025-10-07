@@ -1,11 +1,12 @@
 import type { HttpsOptions } from 'firebase-functions/v2/https'
-import type { RoutesManifest, Reporter } from 'gatsby'
+import type { RoutesManifest } from 'gatsby'
 import type { HeaderKV, HostingHeader, HostingRedirect, HostingRewrite } from './types.js'
+import type { AdaptorReporter } from './reporter.js'
 
 export interface TransformRoutesOptions {
   routes: RoutesManifest
   pathPrefix: string
-  reporter: Reporter
+  reporter: AdaptorReporter
   functionIdMap: Map<string, string>
   functionsConfig?: HttpsOptions
   functionsConfigOverride?: Record<string, HttpsOptions>
@@ -70,18 +71,7 @@ const extractRegion = (options?: HttpsOptions): string | null => {
   const region = options?.region
   if (typeof region === 'string') return region
   if (Array.isArray(region)) return region[0]
-  if (region && typeof region === 'object') {
-    if ('value' in region && typeof region.value === 'function') {
-      const serialized = region.value()
-      if (typeof serialized === 'string') return serialized
-      if (Array.isArray(serialized)) return serialized[0]
-    }
-    if ('toJSON' in region && typeof region.toJSON === 'function') {
-      const serialized = region.toJSON()
-      if (typeof serialized === 'string') return serialized
-      if (Array.isArray(serialized)) return serialized[0]
-    }
-  }
+  if (region && 'value' in region && typeof region.value === 'function') return region.value()
   return null
 }
 
@@ -90,46 +80,30 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
     options
 
   const headerAccumulator = new Map<string, Map<string, HeaderKV>>()
+  const redirects: HostingRedirect[] = []
+  const rewrites: HostingRewrite[] = []
 
   const addHeaders = (source: string, entries: HeaderKV[]) => {
     if (!entries.length) return
-    const { path } = splitLocation(source)
-    const normalizedSource = normalizeSource(path, pathPrefix)
-    let bucket = headerAccumulator.get(normalizedSource)
+    let bucket = headerAccumulator.get(source)
     if (!bucket) {
       bucket = new Map()
-      headerAccumulator.set(normalizedSource, bucket)
+      headerAccumulator.set(source, bucket)
     }
     for (const { key, value } of entries) {
       bucket.set(key.toLowerCase(), { key, value })
     }
   }
 
-  const redirects: HostingRedirect[] = []
-  const rewrites: HostingRewrite[] = []
-
   for (const route of routes) {
     const { path: routePath, suffix: routeSuffix } = splitLocation(route.path)
-
-    if (routeSuffix) {
-      reporter.warn(
-        `[gatsby-adapter-firebase] Route "${route.path}" contains query parameters or hash fragments which Firebase Hosting cannot match; skipping this rule.`,
-      )
-      continue
-    }
-
     const source = normalizeSource(routePath, pathPrefix)
-
-    if (route.type === 'static') {
-      addHeaders(routePath, route.headers)
-      continue
-    }
 
     if (route.type === 'function') {
       const deployedId = functionIdMap.get(route.functionId)
       if (!deployedId) {
         reporter.warn(
-          `[gatsby-adapter-firebase] Function route for id "${route.functionId}" has no matching function definition; skipping rewrite for ${source}`,
+          `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${source}`,
         )
         continue
       }
@@ -148,21 +122,33 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
       continue
     }
 
+    if (route.type === 'static') {
+      addHeaders(source, route.headers)
+      continue
+    }
+
     if (route.type === 'redirect') {
+      if (routeSuffix) {
+        reporter.warn(
+          `Redirect "${route.path}" -> "${route.toPath}" contains query parameters or hash fragments which Firebase Hosting cannot match; skipping this rule.`,
+        )
+        continue
+      }
+
       if (route.headers?.length) {
         reporter.warn(
-          `[gatsby-adapter-firebase] Redirect for ${route.path} defines HTTP headers but Firebase Hosting redirects do not support response headers; omitting headers.`,
+          `Redirect ${route.path} -> ${route.toPath} defines HTTP headers but Firebase Hosting redirects do not support response headers; omitting headers.`,
         )
       }
       if (route.ignoreCase) {
         reporter.warn(
-          `[gatsby-adapter-firebase] Redirect for ${route.path} sets ignoreCase=true which is not supported by Firebase Hosting; proceeding with case-sensitive match.`,
+          `Redirect ${route.path} -> ${route.toPath} sets ignoreCase=true which is not supported by Firebase Hosting; proceeding with case-sensitive match.`,
         )
       }
       const conditions = route['conditions'] as Record<string, unknown> | undefined
       if (conditions && Object.keys(conditions).length > 0) {
         reporter.warn(
-          `[gatsby-adapter-firebase] Redirect for ${route.path} has conditions (${Object.keys(conditions).join(', ')}) which are not supported by Firebase Hosting; skipping rewrite for ${source}`,
+          `Redirect ${route.path} -> ${route.toPath} has conditions (${Object.keys(conditions).join(', ')}) which are not supported by Firebase Hosting; skipping rewrite for ${source}`,
         )
         continue
       }
@@ -173,7 +159,7 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
       if (route.status === 200) {
         if (isExternal) {
           reporter.warn(
-            `[gatsby-adapter-firebase] Gatsby rewrite ${route.path} -> ${route.toPath} targets an external URL; Firebase Hosting rewrites cannot proxy to external origins. Falling back to 302 redirect.`,
+            `Rewrite ${route.path} -> ${route.toPath} targets an external URL; Firebase Hosting rewrites cannot proxy to external origins. Falling back to 302 redirect.`,
           )
           redirects.push({ source, destination: route.toPath, type: 302 })
         } else {
@@ -184,7 +170,7 @@ export const transformRoutes = (options: TransformRoutesOptions): TransformRoute
 
       if (!REDIRECT_STATUS_CODES.includes(route.status)) {
         reporter.warn(
-          `[gatsby-adapter-firebase] Redirect for ${route.path} uses unsupported status ${route.status}; skipping.`,
+          `Redirect ${route.path} -> ${route.toPath} uses unsupported status ${route.status}; skipping.`,
         )
         continue
       }

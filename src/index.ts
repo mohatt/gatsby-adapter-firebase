@@ -7,13 +7,13 @@ import { mergeFirebaseJson } from './lib/firebase-merge.js'
 import { readPackageJson, relativeToPosix } from './lib/utils.js'
 import { AdaptorReporter } from './lib/reporter.js'
 
-const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
-  const hostingTarget = adapterOptions.hostingTarget ?? 'gatsby'
-  const functionsConfig = adapterOptions.functionsConfig
-  const functionsConfigOverride = adapterOptions.functionsConfigOverride ?? {}
-  const functionsOutDirRel = adapterOptions.functionsOutDir ?? '.firebase/functions'
-  const functionsCodebase = adapterOptions.functionsCodebase ?? 'gatsby'
-  const functionsRuntime = adapterOptions.functionsRuntime ?? 'nodejs20'
+const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
+  const hostingTarget = options.hostingTarget ?? 'gatsby'
+  const functionsConfig = options.functionsConfig
+  const functionsConfigOverride = options.functionsConfigOverride ?? {}
+  const functionsOutDirRel = options.functionsOutDir ?? '.firebase/functions'
+  const functionsCodebase = options.functionsCodebase ?? 'gatsby'
+  const functionsRuntime = options.functionsRuntime ?? 'nodejs20'
 
   return {
     name: 'gatsby-adapter-firebase',
@@ -32,7 +32,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
             functions: functionsManifest ?? [],
             outDir: functionsOutDir,
             projectRoot,
-            reporter: gatsbyReporter,
+            reporter,
             runtime: functionsRuntime,
             functionsConfig,
             functionsConfigOverride,
@@ -65,7 +65,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
           const result = transformRoutes({
             routes: routesManifest ?? [],
             pathPrefix,
-            reporter: gatsbyReporter,
+            reporter,
             functionIdMap: fnResult.idMap,
             functionsConfig,
             functionsConfigOverride,
@@ -115,8 +115,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (adapterOptions = {}) => {
       reporter.verbose(`[gatsby-adapter-firebase] version: ${readPackageJson().version}`)
 
       const deployURL = process.env['DEPLOY_URL']
-      let excludeDatastoreFromEngineFunction =
-        adapterOptions?.excludeDatastoreFromEngineFunction ?? false
+      let excludeDatastoreFromEngineFunction = options?.excludeDatastoreFromEngineFunction ?? false
       if (excludeDatastoreFromEngineFunction && !deployURL) {
         reporter.warn(
           '[gatsby-adapter-firebase] excludeDatastoreFromEngineFunction=true but DEPLOY_URL is not set; disabling option.',
