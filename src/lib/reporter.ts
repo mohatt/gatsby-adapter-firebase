@@ -64,7 +64,7 @@ export class AdaptorReporter {
   /**
    * Logs an error and terminates the build process.
    */
-  error(phase: string, err: string | AdaptorError | Error): never {
+  panic(phase: string, err: string | AdaptorError | Error): never {
     const meta = this.createError(phase, err)
     return this.ref.panic(meta)
   }
@@ -115,22 +115,21 @@ class AdaptorActivity {
     this.ref.setStatus(status)
   }
 
-  error(err: string | AdaptorError | Error) {
+  panic(err: string | AdaptorError | Error): never {
     return this.ref.panic(this.reporter.createError(this.phase, err))
   }
 
   async run<R>(
     fn: Promise<R> | ((setStatus: AdaptorActivity['setStatus']) => R | Promise<R>),
-  ): Promise<[result: R, error: unknown]> {
+  ): Promise<R | never> {
     try {
       this.start()
       const resultPromise = typeof fn === 'function' ? fn(this.setStatus.bind(this)) : fn
       const result = await resultPromise
       this.end()
-      return [result, null]
+      return result
     } catch (err) {
-      this.error(err)
-      return [null, err]
+      this.panic(err)
     }
   }
 }

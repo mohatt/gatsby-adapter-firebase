@@ -5,16 +5,6 @@ export interface HeaderKV {
   value: string
 }
 
-export interface AdapterOptions {
-  hostingTarget?: string
-  functionsOutDir?: string
-  functionsCodebase?: string
-  functionsRuntime?: string
-  functionsConfig?: FunctionConfig
-  functionsConfigOverride?: Record<string, FunctionConfig>
-  excludeDatastoreFromEngineFunction?: boolean
-}
-
 export type FirebaseHostingRedirect = {
   source: string
   destination: string
@@ -80,7 +70,6 @@ export type FunctionVariants = {
   cached?: FunctionEntry
 }
 
-export type FunctionsMap = Map<string, FunctionVariants>
 export type FunctionsWorkspace = {
   dir: string
   files: string[]

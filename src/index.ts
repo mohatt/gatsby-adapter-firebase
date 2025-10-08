@@ -1,56 +1,50 @@
 import path from 'node:path'
 import type { AdapterInit } from 'gatsby'
-import type { AdapterOptions, FirebaseHostingJson, FirebaseFunctionsJson } from './lib/types.js'
+import { AdapterOptions, ValidatedAdapterOptions, validateOptions } from './options.js'
 import { AdaptorReporter } from './lib/reporter.js'
 import { buildFunctions } from './lib/build-functions.js'
 import { buildHosting } from './lib/build-hosting.js'
 import { buildConfig } from './lib/build-config.js'
-import { readPackageJson, relativeToPosix } from './lib/utils.js'
-import { AdaptorReporter } from './lib/reporter.js'
+import { readPackageJson } from './lib/utils.js'
 
-const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
-  const hostingTarget = options.hostingTarget ?? 'gatsby'
-  const functionsConfig = options.functionsConfig
-  const functionsConfigOverride = options.functionsConfigOverride ?? {}
-  const functionsOutDirRel = options.functionsOutDir ?? '.firebase/functions'
-  const functionsCodebase = options.functionsCodebase ?? 'gatsby'
-  const functionsRuntime = options.functionsRuntime ?? 'nodejs20'
+const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
+  let reporter: AdaptorReporter | undefined
+  let options: ValidatedAdapterOptions | undefined
 
   return {
     name: 'gatsby-adapter-firebase',
 
     async adapt(args) {
-      const { routesManifest, functionsManifest, pathPrefix, reporter: gatsbyReporter } = args
-      const projectRoot = process.cwd()
-      const functionsOutDir = path.resolve(projectRoot, functionsOutDirRel)
-      const firebaseJsonFile = path.join(projectRoot, 'firebase.json')
-      const reporter = new AdaptorReporter(gatsbyReporter)
+      if (!reporter || !options) {
+        throw new Error('[gatsby-adapter-firebase] Expected adaptor state to be initialized')
+      }
 
-      const [functionsResult, functionsErr] = await reporter
+      const projectRoot = process.cwd()
+      const { routesManifest, functionsManifest, pathPrefix } = args
+
+      const functionsResult = await reporter
         .activity('buildFunctions', 'Building functions workspace')
         .run(async (setStatus) => {
           const result = await buildFunctions({
+            projectRoot,
             routesManifest,
             functionsManifest,
-            outDir: functionsOutDir,
-            projectRoot,
             reporter,
-            runtime: functionsRuntime,
-            functionsConfig,
-            functionsConfigOverride,
+            options,
           })
 
-          const fnExports = result.workspace?.exports
-          if (fnExports?.length) {
+          const { workspace, config } = result
+          if (config) {
             const infoParts = [
-              `codebase=${functionsCodebase}`,
-              `functions=${fnExports.length} (use --verbose for breakdown)`,
+              `codebase=${result.config.codebase}`,
+              `files=${workspace.files.length}`,
+              `functions=${workspace.exports.length} (use --verbose for breakdown)`,
             ]
             setStatus(infoParts.join(', '))
 
             reporter.verbose(
-              `Functions codebase: ${[`${functionsCodebase} → ${functionsOutDir}`]
-                .concat(fnExports.map((fn) => `${fn.entryFile} → ${fn.deployId}`))
+              `Functions codebase: ${[`${config.codebase} → ${workspace.dir}`]
+                .concat(workspace.exports.map((fn) => `${fn.entryFile} → ${fn.deployId}`))
                 .join('\n - ')}`,
             )
           } else {
@@ -59,48 +53,35 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
 
           return result
         })
-      if (functionsErr) return
 
-      const [hostingResult, hostingErr] = await reporter
+      const hostingResult = await reporter
         .activity('buildHosting', 'Building hosting config')
         .run((setStatus) => {
           const result = buildHosting({
             routesManifest,
             pathPrefix,
             reporter,
+            options,
             functionsMap: functionsResult.functionsMap,
           })
 
+          const { target, redirects, headers, rewrites } = result.config
           const infoParts = [
-            `target=${hostingTarget}`,
-            `redirects=${result.redirects.length}`,
-            `rewrites=${result.rewrites.length}`,
-            `headers=${result.headers.length}`,
+            `target=${target}`,
+            `redirects=${redirects.length}`,
+            `rewrites=${rewrites.length}`,
+            `headers=${headers.length}`,
           ]
           setStatus(infoParts.join(', '))
 
           return result
         })
-      if (hostingErr) return
 
       await reporter.activity('buildConfig', 'Building firebase.json').run(async (setStatus) => {
-        const functionsEntry: FirebaseFunctionsJson = functionsResult.workspace && {
-          codebase: functionsCodebase,
-          source: relativeToPosix(projectRoot, functionsOutDir) || '.',
-          runtime: functionsRuntime,
-        }
-
-        const hostingEntry: FirebaseHostingJson = {
-          target: hostingTarget,
-          public: 'public',
-          redirects: hostingResult.redirects,
-          rewrites: hostingResult.rewrites,
-          headers: hostingResult.headers,
-        }
-
+        const firebaseJsonFile = path.join(projectRoot, 'firebase.json')
         const result = await buildConfig(firebaseJsonFile, {
-          hosting: hostingEntry,
-          functions: functionsEntry,
+          hosting: hostingResult.config,
+          functions: functionsResult.config,
         })
 
         setStatus(
@@ -111,14 +92,23 @@ const createAdapter: AdapterInit<AdapterOptions> = (options = {}) => {
       })
     },
 
-    config({ reporter }) {
-      reporter.verbose(`[gatsby-adapter-firebase] version: ${readPackageJson().version}`)
+    async config({ reporter: gatsbyReporter }) {
+      reporter = new AdaptorReporter(gatsbyReporter)
+      const result = await validateOptions(userOptions ?? {})
+      if ('errors' in result) {
+        reporter.panic('options', `Invalid options provided\n - ${result.errors.join('\n - ')}`)
+      }
+      options = result.options
+      if (result.warnings) {
+        reporter.warn(`Unsupported options provided\n - ${result.warnings.join('\n - ')}`)
+      }
+      reporter.verbose(`version: ${readPackageJson().version}`)
 
       const deployURL = process.env['DEPLOY_URL']
-      let excludeDatastoreFromEngineFunction = options?.excludeDatastoreFromEngineFunction ?? false
+      let excludeDatastoreFromEngineFunction = options.excludeDatastoreFromEngineFunction
       if (excludeDatastoreFromEngineFunction && !deployURL) {
         reporter.warn(
-          '[gatsby-adapter-firebase] excludeDatastoreFromEngineFunction=true but DEPLOY_URL is not set; disabling option.',
+          'excludeDatastoreFromEngineFunction=true but DEPLOY_URL is not set; disabling option.',
         )
         excludeDatastoreFromEngineFunction = false
       }

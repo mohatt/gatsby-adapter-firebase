@@ -6,21 +6,25 @@ import {
   FirebaseHostingRewrite,
   FirebaseHostingFunctionRewrite,
   FunctionVariants,
+  FirebaseHostingJson,
 } from './types.js'
 import type { FunctionConfig } from './runtime/types.js'
 import type { AdaptorReporter } from './reporter.js'
+
+export interface BuildHostingOptions {
+  hostingTarget: string
+}
 
 export interface BuildHostingArgs {
   routesManifest: RoutesManifest
   pathPrefix: string
   reporter: AdaptorReporter
   functionsMap: ReadonlyMap<string, FunctionVariants>
+  options: BuildHostingOptions
 }
 
 export interface BuildHostingResult {
-  headers: FirebaseHostingHeader[]
-  redirects: FirebaseHostingRedirect[]
-  rewrites: FirebaseHostingRewrite[]
+  config: FirebaseHostingJson
 }
 
 const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
@@ -72,9 +76,9 @@ const normalizeDestination = (value: string, pathPrefix: string) => {
   return `${collapsed}${suffix ?? ''}`
 }
 
-const extractRegion = (options?: FunctionConfig): string | null => {
-  if (!options) return null
-  const region = options?.region
+const extractRegion = (config?: FunctionConfig): string | null => {
+  if (!config) return null
+  const region = config?.region
   if (typeof region === 'string') return region
   if (Array.isArray(region)) return region[0]
   if (region && 'value' in region && typeof region.value === 'function') return region.value()
@@ -82,7 +86,7 @@ const extractRegion = (options?: FunctionConfig): string | null => {
 }
 
 export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
-  const { routesManifest, pathPrefix, reporter, functionsMap } = args
+  const { routesManifest, pathPrefix, reporter, functionsMap, options } = args
   const headerAccumulator = new Map<string, Map<string, HeaderKV>>()
   const redirects: FirebaseHostingRedirect[] = []
   const rewrites: FirebaseHostingRewrite[] = []
@@ -198,5 +202,13 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
     .map(([source, headerMap]) => ({ source, headers: Array.from(headerMap.values()) }))
     .sort((a, b) => a.source.localeCompare(b.source))
 
-  return { headers, redirects, rewrites }
+  return {
+    config: {
+      target: options.hostingTarget,
+      public: 'public',
+      redirects,
+      rewrites,
+      headers,
+    },
+  }
 }

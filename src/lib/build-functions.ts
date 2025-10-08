@@ -6,25 +6,32 @@ import {
   FunctionVariants,
   FunctionsWorkspace,
   FunctionsRuntimeExport,
+  FirebaseFunctionsJson,
 } from './types.js'
 import type { FunctionConfig } from './runtime/types.js'
 import { pLimit, relativeToPosix, isPathWithin, toPosix, resolveDistPath } from './utils.js'
 import { AdaptorReporter, AdaptorError } from './reporter.js'
 
-export type BuildFunctionsArgs = {
-  functionsManifest: Readonly<FunctionsManifest>
-  routesManifest: Readonly<RoutesManifest>
-  outDir: string
-  projectRoot: string
-  reporter: AdaptorReporter
-  runtime: string
+export interface BuildFunctionsOptions {
+  functionsOutDir: string
+  functionsCodebase: string
+  functionsRuntime: string
   functionsConfig?: FunctionConfig
   functionsConfigOverride?: Record<string, FunctionConfig>
 }
 
+export type BuildFunctionsArgs = {
+  functionsManifest: Readonly<FunctionsManifest>
+  routesManifest: Readonly<RoutesManifest>
+  projectRoot: string
+  reporter: AdaptorReporter
+  options: BuildFunctionsOptions
+}
+
 export type BuildFunctionsResult = {
-  workspace?: FunctionsWorkspace | null
   functionsMap: ReadonlyMap<string, FunctionVariants>
+  workspace?: FunctionsWorkspace | null
+  config?: FirebaseFunctionsJson | null
 }
 
 const MAX_FUNCTION_NAME_LENGTH = 63
@@ -96,16 +103,20 @@ const resolveFunctionConfig = <T extends FunctionConfig>(base?: T, override?: T)
 
 export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFunctionsResult> => {
   const {
+    projectRoot,
     routesManifest,
     functionsManifest,
-    outDir,
-    projectRoot,
     reporter,
-    runtime,
-    functionsConfig,
-    functionsConfigOverride = {},
+    options: {
+      functionsCodebase,
+      functionsRuntime,
+      functionsOutDir,
+      functionsConfig,
+      functionsConfigOverride = {},
+    },
   } = args
 
+  const outDir = path.resolve(projectRoot, functionsOutDir)
   if (!isPathWithin(projectRoot, outDir)) {
     throw new AdaptorError('functionsOutDir must be within the project root')
   }
@@ -118,7 +129,7 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
     } catch (error) {
       reporter.warn(`Failed to clean empty functions directory ${outDir}: ${String(error)}`)
     }
-    return { workspace: null, functionsMap }
+    return { workspace: null, config: null, functionsMap }
   }
 
   try {
@@ -136,6 +147,11 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
     return accu
   }, new Set<string>())
   const usedNames = new Set<string>()
+
+  const addWorkspaceFile = (absolute: string) => {
+    const relative = toPosix(path.relative(outDir, absolute))
+    if (!workspace.files.includes(relative)) workspace.files.push(relative)
+  }
 
   for (const fn of functionsManifest) {
     if (functionsMap.has(fn.functionId)) {
@@ -165,7 +181,7 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
           try {
             await fs.mkdir(path.dirname(destination), { recursive: true })
             await fs.copyFile(absolute, destination)
-            workspace.files.push(toPosix(relativeFromRoot))
+            addWorkspaceFile(destination)
             return { file, isEntry, error: null }
           } catch (error) {
             return { file, isEntry, error: error.message }
@@ -226,7 +242,7 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
       )
     }
     functionsMap.clear()
-    return { workspace: null, functionsMap }
+    return { workspace: null, config: null, functionsMap }
   }
 
   const runtimeModulePath = resolveDistPath('lib/runtime.cjs')
@@ -239,7 +255,7 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
   await fs.copyFile(runtimeModulePath, runtimeTargetPath).catch((error) => {
     throw new AdaptorError(`Failed to copy runtime module to ${runtimeTargetPath}`, error)
   })
-  workspace.files.push(toPosix(path.relative(outDir, runtimeTargetPath)))
+  addWorkspaceFile(runtimeTargetPath)
 
   const exportLines: string[] = []
   const runtimeImports: FunctionsRuntimeExport[] = []
@@ -270,12 +286,12 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
   await fs.writeFile(indexFile, indexLines.join('\n'), 'utf8').catch((error) => {
     throw new AdaptorError(`Failed to write ${indexFile}`, error)
   })
-  workspace.files.push(toPosix(path.relative(outDir, indexFile)))
+  addWorkspaceFile(indexFile)
 
-  const enginesEntry = runtimeToEngineConstraint(runtime)
+  const nodeEngine = runtimeToEngineConstraint(functionsRuntime)
   const packageJson = {
     type: 'commonjs',
-    ...(enginesEntry ? { engines: { node: enginesEntry } } : {}),
+    ...(nodeEngine ? { engines: { node: nodeEngine } } : {}),
     dependencies: {
       'firebase-functions': '^6.0.0',
       'firebase-admin': '^12.0.0',
@@ -286,7 +302,15 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
   await fs.writeFile(pkgFile, JSON.stringify(packageJson, null, 2), 'utf8').catch((error) => {
     throw new AdaptorError(`Failed to write ${pkgFile}`, error)
   })
-  workspace.files.push(toPosix(path.relative(outDir, pkgFile)))
+  addWorkspaceFile(pkgFile)
 
-  return { workspace, functionsMap }
+  return {
+    workspace,
+    functionsMap,
+    config: {
+      codebase: functionsCodebase,
+      source: relativeToPosix(projectRoot, outDir) || '.',
+      runtime: functionsRuntime,
+    },
+  }
 }
