@@ -20,7 +20,7 @@ export interface BuildFunctionsOptions {
   functionsConfigOverride?: Record<string, FunctionConfig>
 }
 
-export type BuildFunctionsArgs = {
+export interface BuildFunctionsArgs {
   functionsManifest: Readonly<FunctionsManifest>
   routesManifest: Readonly<RoutesManifest>
   projectRoot: string
@@ -28,7 +28,7 @@ export type BuildFunctionsArgs = {
   options: BuildFunctionsOptions
 }
 
-export type BuildFunctionsResult = {
+export interface BuildFunctionsResult {
   functionsMap: ReadonlyMap<string, FunctionVariants>
   workspace?: FunctionsWorkspace | null
   config?: FirebaseFunctionsJson | null

@@ -4,12 +4,12 @@ import type { FirebaseJson, FirebaseFunctionsJson, FirebaseHostingJson } from '.
 import { AdaptorError } from './reporter.js'
 import { toArray } from './utils.js'
 
-export type BuildConfigArgs = {
+export interface BuildConfigArgs {
   hosting: FirebaseHostingJson
   functions?: FirebaseFunctionsJson
 }
 
-export type BuildConfigResult = {
+export interface BuildConfigResult {
   wrote: number
   config: FirebaseJson
 }

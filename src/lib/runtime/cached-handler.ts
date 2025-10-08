@@ -3,11 +3,9 @@ import { getStorage } from 'firebase-admin/storage'
 import type { Bucket, File } from '@google-cloud/storage'
 import type { FunctionHandler, Request, Response } from './types.js'
 
-const ALLOWED_METHODS = new Set(['GET', 'HEAD'] as const)
-const ALLOW_HEADER_VALUE = 'GET, HEAD'
-const HTTP_STATUS_METHOD_NOT_ALLOWED = 405
-
 type AllowedMethod = 'GET' | 'HEAD'
+const ALLOWED_METHODS: readonly AllowedMethod[] = ['GET', 'HEAD']
+const HTTP_STATUS_METHOD_NOT_ALLOWED = 405
 
 let cachedBucket: Bucket | null | undefined
 
@@ -15,55 +13,64 @@ const getBucket = () => {
   if (cachedBucket !== undefined) return cachedBucket
   try {
     const app = initializeApp()
-    cachedBucket = getStorage(app).bucket()
+    cachedBucket = getStorage(app).bucket() as unknown as Bucket
   } catch (error) {
     cachedBucket = null
-    console.warn(
-      '[gatsby-adapter-firebase] Failed to initialize Firebase Storage: ' +
-        (error instanceof Error ? error.message : String(error)),
-    )
+    console.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
   }
   return cachedBucket
 }
 
-const normalizePath = (value: string | undefined): string => {
-  if (!value) return '/'
-  const trimmed = value.startsWith('/') ? value : `/${value.replace(/^\/+/, '')}`
-  return trimmed.replace(/\/{2,}/g, '/') || '/'
-}
+const normalizePath = (value: string | undefined) => {
+  if (!value || value === '/') return '/'
 
-const stripQueryAndHash = (value: string): string => {
+  // strip query and hash
   const index = value.search(/[?#]/)
-  return index === -1 ? value : value.slice(0, index)
+  let normalized = index === -1 ? value : value.slice(0, index)
+
+  // ensure one leading slash and no duplicate slashes
+  normalized = `/${normalized}`.replace(/\/{2,}/g, '/')
+
+  // no trailing slashes
+  return normalized !== '/' && normalized.endsWith('/') //
+    ? normalized.slice(0, -1)
+    : normalized
 }
 
-const getRequestPath = (req: Request): string => {
+const getRequestPath = (req: Request) => {
   const candidate =
-    (typeof req.path === 'string' && req.path) ||
     (typeof req.originalUrl === 'string' && req.originalUrl) ||
+    (typeof req.path === 'string' && req.path) ||
     (typeof req.url === 'string' && req.url) ||
     '/'
-  return normalizePath(stripQueryAndHash(candidate))
+  return normalizePath(candidate)
 }
 
 const toBuffer = (chunk: unknown, encoding?: unknown): Buffer | null => {
   if (chunk == null) return null
   if (Buffer.isBuffer(chunk)) return chunk
-  const normalizedEncoding = typeof encoding === 'string' ? encoding : undefined
-  if (typeof chunk === 'string') return Buffer.from(chunk, normalizedEncoding)
-  return Buffer.from(chunk as ArrayBufferLike)
+  if (typeof chunk === 'string') {
+    return Buffer.from(
+      chunk,
+      typeof encoding === 'string' ? (encoding as BufferEncoding) : undefined,
+    )
+  }
+  if (chunk instanceof Uint8Array) return Buffer.from(chunk)
+  return null
 }
 
 const collectHeaders = (res: Response) =>
-  Object.entries(res.getHeaders()).map(([name, value]) => ({ name, value }))
+  Object.entries(res.getHeaders())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => ({ name, value }))
 
 const createCacheKey = (functionId: string, req: Request) => {
   const path = getRequestPath(req)
   const encoded = Buffer.from(path).toString('base64url')
-  return `gatsby-adapter/${functionId}/${encoded}.json`
+  return `gatsby-adapter-firebase/${functionId}/${encoded}.json`
 }
 
-type CachedPayload = {
+interface CachedPayload {
   status: number
   headers: Array<{ name: string; value: unknown }>
   encoding: 'base64'
@@ -75,24 +82,26 @@ const readCachedResponse = async (file: File): Promise<CachedPayload | null> => 
     const [exists] = await file.exists()
     if (!exists) return null
     const [content] = await file.download({ validation: false })
-    return JSON.parse(content.toString('utf8')) as CachedPayload
+    return JSON.parse(content.toString('utf8'))
   } catch (error) {
-    throw error
+    console.error(
+      `[gatsby-adapter-firebase] Failed to read cached response for ${file.name}:`,
+      error,
+    )
   }
+  return null
 }
 
-const writeCachedResponse = async (file: File, payload: CachedPayload, cacheKey: string) => {
+const writeCachedResponse = async (file: File, payload: CachedPayload) => {
   try {
     await file.save(JSON.stringify(payload), {
       resumable: false,
       contentType: 'application/json',
     })
   } catch (error) {
-    console.warn(
-      '[gatsby-adapter-firebase] Failed to write cached response for ' +
-        cacheKey +
-        ': ' +
-        (error instanceof Error ? error.message : String(error)),
+    console.error(
+      `[gatsby-adapter-firebase] Failed to write cached response for ${file.name}:`,
+      error,
     )
   }
 }
@@ -118,15 +127,12 @@ const respondWithCache = (res: Response, cached: CachedPayload, method: AllowedM
   res.send(cached.body)
 }
 
-const normalizeMethod = (method?: string): string =>
-  typeof method === 'string' ? method.toUpperCase() : 'GET'
-
 export const createCachedHandler = (handler: FunctionHandler, id: string): FunctionHandler => {
   return async (req, res) => {
-    const method = normalizeMethod(req.method) as AllowedMethod
-    if (!ALLOWED_METHODS.has(method)) {
+    const method = (req.method?.toUpperCase() as AllowedMethod) ?? 'GET'
+    if (!ALLOWED_METHODS.includes(method)) {
       res.status(HTTP_STATUS_METHOD_NOT_ALLOWED)
-      res.set('allow', ALLOW_HEADER_VALUE)
+      res.set('allow', ALLOWED_METHODS.join(', '))
       res.set('cache-control', 'no-store')
       res.send('Method Not Allowed')
       return
@@ -141,19 +147,10 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     const cacheKey = createCacheKey(id, req)
     const file = bucket.file(cacheKey)
 
-    try {
-      const cached = await readCachedResponse(file)
-      if (cached) {
-        respondWithCache(res, cached, method)
-        return
-      }
-    } catch (error) {
-      console.warn(
-        '[gatsby-adapter-firebase] Failed to read cached response for ' +
-          cacheKey +
-          ': ' +
-          (error instanceof Error ? error.message : String(error)),
-      )
+    const cached = await readCachedResponse(file)
+    if (cached) {
+      respondWithCache(res, cached, method)
+      return
     }
 
     if (method !== 'GET') {
@@ -168,19 +165,21 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     res.write = function writeOverride(this: Response, chunk: unknown, encoding?: unknown) {
       const normalized = toBuffer(chunk, encoding)
       if (normalized) chunks.push(normalized)
-      return originalWrite.apply(this, arguments as unknown as Parameters<Response['write']>)
+      // eslint-disable-next-line prefer-rest-params
+      return originalWrite.apply(this, arguments)
     }
 
     res.end = function endOverride(this: Response, chunk?: unknown, encoding?: unknown) {
       const normalized = toBuffer(chunk, encoding)
       if (normalized) chunks.push(normalized)
-      return originalEnd.apply(this, arguments as unknown as Parameters<Response['end']>)
+      // eslint-disable-next-line prefer-rest-params
+      return originalEnd.apply(this, arguments)
     }
 
-    let finalized = false
+    let done = false
     const finalize = async () => {
-      if (finalized) return
-      finalized = true
+      if (done) return
+      done = true
       res.removeListener('finish', finalize)
       res.removeListener('close', finalize)
       res.write = originalWrite
@@ -199,7 +198,7 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
         body: bodyBuffer.toString('base64'),
       }
 
-      await writeCachedResponse(file, payload, cacheKey)
+      await writeCachedResponse(file, payload)
     }
 
     res.on('finish', finalize)
@@ -207,12 +206,11 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
 
     try {
       await handler(req, res)
-    } catch (error) {
+    } finally {
       res.write = originalWrite
       res.end = originalEnd
       res.removeListener('finish', finalize)
       res.removeListener('close', finalize)
-      throw error
     }
   }
 }

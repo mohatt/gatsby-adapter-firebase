@@ -5,18 +5,18 @@ export interface HeaderKV {
   value: string
 }
 
-export type FirebaseHostingRedirect = {
+export interface FirebaseHostingRedirect {
   source: string
   destination: string
   type?: number
 }
 
-export type FirebaseHostingHeader = {
+export interface FirebaseHostingHeader {
   source: string
   headers: HeaderKV[]
 }
 
-export type FirebaseHostingFunctionRewrite = {
+export interface FirebaseHostingFunctionRewrite {
   source: string
   function: {
     functionId: string
@@ -25,14 +25,14 @@ export type FirebaseHostingFunctionRewrite = {
   }
 }
 
-export type FirebaseHostingDestRewrite = {
+export interface FirebaseHostingDestRewrite {
   source: string
   destination: string
 }
 
 export type FirebaseHostingRewrite = FirebaseHostingFunctionRewrite | FirebaseHostingDestRewrite
 
-export type FirebaseHostingJson = {
+export interface FirebaseHostingJson {
   target: string
   public?: string
   ignore?: string[]
@@ -42,14 +42,14 @@ export type FirebaseHostingJson = {
   [k: string]: unknown
 }
 
-export type FirebaseFunctionsJson = {
+export interface FirebaseFunctionsJson {
   codebase: string
   source: string
   runtime?: string
   [k: string]: unknown
 }
 
-export type FirebaseJson = {
+export interface FirebaseJson {
   hosting?: FirebaseHostingJson | FirebaseHostingJson[]
   functions?: FirebaseFunctionsJson | FirebaseFunctionsJson[]
   [k: string]: unknown
@@ -57,7 +57,7 @@ export type FirebaseJson = {
 
 export type FunctionVariant = keyof FunctionVariants
 
-export type FunctionEntry = {
+export interface FunctionEntry {
   id: string
   deployId: string
   entryFile: string
@@ -65,12 +65,12 @@ export type FunctionEntry = {
   config?: FunctionConfig
 }
 
-export type FunctionVariants = {
+export interface FunctionVariants {
   default: FunctionEntry
   cached?: FunctionEntry
 }
 
-export type FunctionsWorkspace = {
+export interface FunctionsWorkspace {
   dir: string
   files: string[]
   exports: FunctionEntry[]
@@ -79,7 +79,7 @@ export type FunctionsWorkspace = {
 export type FunctionsRuntime = typeof import('./runtime.js')
 export type FunctionsRuntimeExport = keyof FunctionsRuntime
 
-export type PackageJson = {
+export interface PackageJson {
   name: string
   version: string
   [k: string]: unknown
