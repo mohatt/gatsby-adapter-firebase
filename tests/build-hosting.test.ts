@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { RoutesManifest } from 'gatsby'
+import type { Reporter, RoutesManifest } from 'gatsby'
 import type { FunctionVariants } from '../src/lib/types.js'
 import { buildHosting } from '../src/lib/build-hosting.js'
 import { AdaptorReporter } from '../src/lib/reporter.js'
@@ -21,7 +21,7 @@ const createReporter = () => {
       }),
     }),
     setErrorMap: vi.fn(),
-  } as unknown as import('gatsby').Reporter
+  } as unknown as Reporter
 
   return { adaptor: new AdaptorReporter(gatsbyReporter), gatsby: gatsbyReporter }
 }
@@ -54,14 +54,15 @@ describe('buildHosting()', () => {
       },
     })
 
-    const { rewrites, redirects, headers } = buildHosting({
+    const { config } = buildHosting({
       routesManifest: routes,
       pathPrefix: '',
       reporter,
       functionsMap,
+      options: { hostingTarget: 'gatsby' },
     })
 
-    expect(rewrites).toEqual([
+    expect(config.rewrites).toEqual([
       {
         source: '/ssr',
         function: { functionId: 'ssr_engine', pinTag: true },
@@ -76,7 +77,7 @@ describe('buildHosting()', () => {
       },
     ])
 
-    expect(redirects).toEqual([
+    expect(config.redirects).toEqual([
       {
         source: '/old',
         destination: '/new',
@@ -84,7 +85,7 @@ describe('buildHosting()', () => {
       },
     ])
 
-    expect(headers).toEqual([
+    expect(config.headers).toEqual([
       {
         source: '/static',
         headers: [{ key: 'cache-control', value: 'public, max-age=0' }],
@@ -130,14 +131,15 @@ describe('buildHosting()', () => {
       },
     })
 
-    const { rewrites } = buildHosting({
+    const { config } = buildHosting({
       routesManifest: routes,
       pathPrefix: '',
       reporter,
       functionsMap,
+      options: { hostingTarget: 'gatsby' },
     })
 
-    expect(rewrites).toEqual([
+    expect(config.rewrites).toEqual([
       {
         source: '/ssr',
         function: { functionId: 'ssr_engine', pinTag: true, region: 'asia-northeast1' },
@@ -160,14 +162,15 @@ describe('buildHosting()', () => {
       default: { id: 'ssr-engine', deployId: 'ssr_engine', variant: 'default', entryFile: 'xx' },
     })
 
-    const { rewrites } = buildHosting({
+    const { config } = buildHosting({
       routesManifest: routes,
       pathPrefix: '',
       reporter,
       functionsMap,
+      options: { hostingTarget: 'gatsby' },
     })
 
-    expect(rewrites).toEqual([
+    expect(config.rewrites).toEqual([
       {
         source: '/dsg',
         function: { functionId: 'ssr_engine', pinTag: true },

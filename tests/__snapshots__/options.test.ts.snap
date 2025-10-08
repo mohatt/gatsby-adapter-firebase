@@ -1,0 +1,91 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`options > 'accepts defaults with no options' > result 1`] = `
+{
+  "options": {
+    "excludeDatastoreFromEngineFunction": false,
+    "functionsCodebase": "gatsby",
+    "functionsConfigOverride": {},
+    "functionsOutDir": ".firebase/functions",
+    "functionsRuntime": "nodejs20",
+    "hostingTarget": "gatsby",
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`options > 'accepts valid options' > result 1`] = `
+{
+  "options": {
+    "excludeDatastoreFromEngineFunction": true,
+    "functionsCodebase": "custom",
+    "functionsConfig": {
+      "region": "us-west1",
+      "timeoutSeconds": 120,
+      "unsupportedCustomFlag": {
+        "unknown": "value",
+      },
+    },
+    "functionsConfigOverride": {
+      "ssr-engine": {
+        "concurrency": 10,
+        "region": "asia-northeast1",
+      },
+    },
+    "functionsOutDir": "custom/functions",
+    "functionsRuntime": "node22",
+    "hostingTarget": "custom",
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`options > 'rejects empty options' > result 1`] = `
+{
+  "errors": [
+    ""hostingTarget" is not allowed to be empty",
+    ""functionsOutDir" is not allowed to be empty",
+    ""functionsCodebase" is not allowed to be empty",
+    ""functionsRuntime" is not allowed to be empty",
+  ],
+}
+`;
+
+exports[`options > 'rejects invalid options object' > result 1`] = `
+{
+  "errors": [
+    ""options" must be of type object",
+  ],
+}
+`;
+
+exports[`options > 'rejects invalid options' > result 1`] = `
+{
+  "errors": [
+    ""hostingTarget" must be a string",
+    ""functionsConfig" must be of type object",
+    ""functionsConfigOverride.ssr-engine" must be of type object",
+    ""functionsOutDir" must be a string",
+    ""functionsCodebase" must be a string",
+    ""functionsRuntime" must be a string",
+    ""excludeDatastoreFromEngineFunction" must be a boolean",
+  ],
+}
+`;
+
+exports[`options > 'warns unknown options' > result 1`] = `
+{
+  "options": {
+    "excludeDatastoreFromEngineFunction": false,
+    "functionsCodebase": "gatsby",
+    "functionsConfigOverride": {},
+    "functionsOutDir": ".firebase/functions",
+    "functionsRuntime": "nodejs20",
+    "hostingTarget": "gatsby",
+    "unknown": "value",
+  },
+  "warnings": [
+    ""unknown" is not allowed",
+  ],
+}
+`;
