@@ -1,14 +1,37 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getStorage } from 'firebase-admin/storage'
 import type { Bucket, File } from '@google-cloud/storage'
+import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, Request, Response } from './types.js'
 
 type AllowedMethod = 'GET' | 'HEAD'
 const ALLOWED_METHODS: readonly AllowedMethod[] = ['GET', 'HEAD']
 const HTTP_STATUS_METHOD_NOT_ALLOWED = 405
 
+const CACHE_CONTROL_CACHEABLE = 'public, max-age=0, must-revalidate'
+const CACHE_CONTROL_UNCACHEABLE = 'no-store'
+const CACHE_METADATA_HEADER = 'X-Gatsby-Firebase-Cache'
+const CACHE_HIT_VALUE = 'HIT'
+const CACHE_MISS_VALUE = 'MISS'
+const CACHE_PASS_VALUE = 'PASS'
+
+// Hop-by-hop headers are not intended for cached payloads; filter them out.
+const EXCLUDED_CACHE_HEADER_NAMES = [
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'content-length', // derived from body; recomputed on replay
+  'x-gatsby-firebase-cache', // internal metadata
+]
+
 let cachedBucket: Bucket | null | undefined
 
+// lazily resolve and memoize the default storage bucket; cache null if initialization fails
 const getBucket = () => {
   if (cachedBucket !== undefined) return cachedBucket
   try {
@@ -21,6 +44,7 @@ const getBucket = () => {
   return cachedBucket
 }
 
+// normalize the request path so equivalent URLs land on the same cache entry
 const normalizePath = (value: string | undefined) => {
   if (!value || value === '/') return '/'
 
@@ -46,6 +70,7 @@ const getRequestPath = (req: Request) => {
   return normalizePath(candidate)
 }
 
+// convert any express chunk shape into a Buffer so we can concatenate responses safely
 const toBuffer = (chunk: unknown, encoding?: unknown): Buffer | null => {
   if (chunk == null) return null
   if (Buffer.isBuffer(chunk)) return chunk
@@ -59,11 +84,17 @@ const toBuffer = (chunk: unknown, encoding?: unknown): Buffer | null => {
   return null
 }
 
+// capture cacheable headers (without hop-by-hop metadata) for storage
 const collectHeaders = (res: Response) =>
   Object.entries(res.getHeaders())
-    .sort(([a], [b]) => a.localeCompare(b))
+    .filter(([name, value]) => {
+      if (!name || value == null) return false
+      return !EXCLUDED_CACHE_HEADER_NAMES.includes(name.toLowerCase())
+    })
     .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
+// encode function id + normalized path into a stable bucket object key
 const createCacheKey = (functionId: string, req: Request) => {
   const path = getRequestPath(req)
   const encoded = Buffer.from(path).toString('base64url')
@@ -72,11 +103,12 @@ const createCacheKey = (functionId: string, req: Request) => {
 
 interface CachedPayload {
   status: number
-  headers: Array<{ name: string; value: unknown }>
+  headers: Array<{ name: string; value: OutgoingHttpHeader }>
   encoding: 'base64'
   body: string
 }
 
+// load a cached response from storage, tolerating missing objects and parse failures
 const readCachedResponse = async (file: File): Promise<CachedPayload | null> => {
   try {
     const [exists] = await file.exists()
@@ -92,6 +124,7 @@ const readCachedResponse = async (file: File): Promise<CachedPayload | null> => 
   return null
 }
 
+// persist the captured payload for future hits
 const writeCachedResponse = async (file: File, payload: CachedPayload) => {
   try {
     await file.save(JSON.stringify(payload), {
@@ -106,27 +139,16 @@ const writeCachedResponse = async (file: File, payload: CachedPayload) => {
   }
 }
 
-const respondWithCache = (res: Response, cached: CachedPayload, method: AllowedMethod) => {
-  for (const header of cached.headers) {
-    if (!header || typeof header.name !== 'string') continue
-    if (header.value === undefined) continue
-    res.set(header.name, String(header.value))
-  }
-  res.status(cached.status)
+// cache successful/redirect/404 responses; everything else must re-run
+const isCacheableStatus = (statusCode: number) =>
+  (statusCode >= 200 && statusCode < 300) ||
+  statusCode === 301 ||
+  statusCode === 302 ||
+  statusCode === 307 ||
+  statusCode === 308 ||
+  statusCode === 404
 
-  if (method === 'HEAD') {
-    res.end()
-    return
-  }
-
-  if (cached.encoding === 'base64') {
-    res.send(Buffer.from(cached.body, 'base64'))
-    return
-  }
-
-  res.send(cached.body)
-}
-
+// Wrap the original handler with Firebase Storage backed response caching (2xx, 3xx, 404 only).
 export const createCachedHandler = (handler: FunctionHandler, id: string): FunctionHandler => {
   return async (req, res) => {
     const method = (req.method?.toUpperCase() as AllowedMethod) ?? 'GET'
@@ -140,6 +162,10 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
 
     const bucket = getBucket()
     if (!bucket) {
+      res.set(CACHE_METADATA_HEADER, CACHE_PASS_VALUE)
+      if (!res.getHeader('cache-control')) {
+        res.set('cache-control', CACHE_CONTROL_UNCACHEABLE)
+      }
       await handler(req, res)
       return
     }
@@ -149,44 +175,82 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
 
     const cached = await readCachedResponse(file)
     if (cached) {
-      respondWithCache(res, cached, method)
+      // apply cached headers to the response
+      for (const header of cached.headers) {
+        // we just pass the value we got from the cache, express should handle the rest
+        res.set(header.name, header.value as any)
+      }
+      res.set(CACHE_METADATA_HEADER, CACHE_HIT_VALUE)
+      if (!res.getHeader('cache-control')) {
+        res.set('cache-control', CACHE_CONTROL_CACHEABLE)
+      }
+      res.removeHeader('transfer-encoding')
+      res.status(cached.status)
+
+      if (cached.encoding === 'base64') {
+        res.send(Buffer.from(cached.body, 'base64'))
+        return
+      }
+
+      res.send(cached.body)
       return
     }
 
-    if (method !== 'GET') {
-      await handler(req, res)
-      return
-    }
+    res.set(CACHE_METADATA_HEADER, CACHE_MISS_VALUE)
 
     const chunks: Buffer[] = []
+    const shouldBuffer = method === 'GET'
     const originalWrite = res.write
     const originalEnd = res.end
 
+    // intercept writes to buffer the body and set cache-control once status code is known
+    function processChunk(this: Response, chunk: unknown, encoding?: unknown) {
+      if (shouldBuffer) {
+        const normalized = toBuffer(chunk, encoding)
+        if (normalized) chunks.push(normalized)
+      }
+      if (!this.getHeader('cache-control')) {
+        const statusCode = this.statusCode ?? 200
+        this.setHeader(
+          'cache-control',
+          isCacheableStatus(statusCode) ? CACHE_CONTROL_CACHEABLE : CACHE_CONTROL_UNCACHEABLE,
+        )
+      }
+    }
+
     res.write = function writeOverride(this: Response, chunk: unknown, encoding?: unknown) {
-      const normalized = toBuffer(chunk, encoding)
-      if (normalized) chunks.push(normalized)
+      processChunk.call(this, chunk, encoding)
       // eslint-disable-next-line prefer-rest-params
       return originalWrite.apply(this, arguments)
     }
 
+    // ensure the final chunk is buffered and streaming headers are stripped
     res.end = function endOverride(this: Response, chunk?: unknown, encoding?: unknown) {
-      const normalized = toBuffer(chunk, encoding)
-      if (normalized) chunks.push(normalized)
+      processChunk.call(this, chunk, encoding)
+      if (!this.headersSent) {
+        this.removeHeader('transfer-encoding')
+        if (!this.getHeader('content-length')) {
+          const length = chunks.reduce((total, buffer) => total + buffer.byteLength, 0)
+          this.setHeader('content-length', String(length))
+        }
+      }
       // eslint-disable-next-line prefer-rest-params
       return originalEnd.apply(this, arguments)
     }
 
     let done = false
+    // persist cacheable responses once the handler finishes (finish/close parity with express)
     const finalize = async () => {
       if (done) return
       done = true
-      res.removeListener('finish', finalize)
-      res.removeListener('close', finalize)
-      res.write = originalWrite
-      res.end = originalEnd
+      cleanup()
+
+      if (!shouldBuffer) {
+        return
+      }
 
       const statusCode = res.statusCode
-      if (statusCode < 200 || statusCode >= 300) {
+      if (!isCacheableStatus(statusCode)) {
         return
       }
 
@@ -201,16 +265,21 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
       await writeCachedResponse(file, payload)
     }
 
+    const cleanup = () => {
+      res.off('finish', finalize)
+      res.off('close', finalize)
+      res.write = originalWrite
+      res.end = originalEnd
+    }
+
     res.on('finish', finalize)
     res.on('close', finalize)
 
     try {
       await handler(req, res)
-    } finally {
-      res.write = originalWrite
-      res.end = originalEnd
-      res.removeListener('finish', finalize)
-      res.removeListener('close', finalize)
+    } catch (error) {
+      cleanup()
+      throw error
     }
   }
 }
