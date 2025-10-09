@@ -4,6 +4,13 @@ import type { Bucket, File } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, Request, Response } from './types.js'
 
+export interface CachedPayload {
+  status: number
+  headers: Array<{ name: string; value: OutgoingHttpHeader }>
+  encoding: 'base64'
+  body: string
+}
+
 type AllowedMethod = 'GET' | 'HEAD'
 const ALLOWED_METHODS: readonly AllowedMethod[] = ['GET', 'HEAD']
 const HTTP_STATUS_METHOD_NOT_ALLOWED = 405
@@ -101,13 +108,6 @@ const createCacheKey = (functionId: string, req: Request) => {
   return `gatsby-adapter-firebase/${functionId}/${encoded}.json`
 }
 
-interface CachedPayload {
-  status: number
-  headers: Array<{ name: string; value: OutgoingHttpHeader }>
-  encoding: 'base64'
-  body: string
-}
-
 // load a cached response from storage, tolerating missing objects and parse failures
 const readCachedResponse = async (file: File): Promise<CachedPayload | null> => {
   try {
@@ -181,99 +181,114 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
         res.set(header.name, header.value as any)
       }
       res.set(CACHE_METADATA_HEADER, CACHE_HIT_VALUE)
-      if (!res.getHeader('cache-control')) {
-        res.set('cache-control', CACHE_CONTROL_CACHEABLE)
-      }
-      res.removeHeader('transfer-encoding')
       res.status(cached.status)
 
-      if (cached.encoding === 'base64') {
-        res.send(Buffer.from(cached.body, 'base64'))
-        return
-      }
-
-      res.send(cached.body)
+      const buffer = Buffer.from(cached.body, cached.encoding)
+      res.set('content-length', buffer.byteLength.toString())
+      res.end(buffer)
       return
     }
 
-    res.set(CACHE_METADATA_HEADER, CACHE_MISS_VALUE)
-
+    let pendingWrites = 0
     const chunks: Buffer[] = []
     const shouldBuffer = method === 'GET'
-    const originalWrite = res.write
-    const originalEnd = res.end
 
     // intercept writes to buffer the body and set cache-control once status code is known
-    function processChunk(this: Response, chunk: unknown, encoding?: unknown) {
-      if (shouldBuffer) {
-        const normalized = toBuffer(chunk, encoding)
-        if (normalized) chunks.push(normalized)
-      }
-      if (!this.getHeader('cache-control')) {
-        const statusCode = this.statusCode ?? 200
-        this.setHeader(
-          'cache-control',
-          isCacheableStatus(statusCode) ? CACHE_CONTROL_CACHEABLE : CACHE_CONTROL_UNCACHEABLE,
-        )
-      }
-    }
+    const buildChunkArgs = (...args: unknown[]) => {
+      pendingWrites++
 
-    res.write = function writeOverride(this: Response, chunk: unknown, encoding?: unknown) {
-      processChunk.call(this, chunk, encoding)
-      // eslint-disable-next-line prefer-rest-params
-      return originalWrite.apply(this, arguments)
-    }
+      // node allows: write(chunk), write(chunk, cb), write(chunk, encoding), write(chunk, encoding, cb)
+      const chunk = args[0]
+      let encoding: BufferEncoding | undefined
+      let cb: ((err?: Error) => void) | undefined
 
-    // ensure the final chunk is buffered and streaming headers are stripped
-    res.end = function endOverride(this: Response, chunk?: unknown, encoding?: unknown) {
-      processChunk.call(this, chunk, encoding)
-      if (!this.headersSent) {
-        this.removeHeader('transfer-encoding')
-        if (!this.getHeader('content-length')) {
-          const length = chunks.reduce((total, buffer) => total + buffer.byteLength, 0)
-          this.setHeader('content-length', String(length))
+      // normalize args
+      if (typeof args[1] === 'string') {
+        encoding = args[1] as BufferEncoding
+        if (typeof args[2] === 'function') cb = args[2] as () => void
+      } else if (typeof args[1] === 'function') {
+        cb = args[1] as () => void
+      }
+
+      if (!res.headersSent) {
+        res.setHeader(CACHE_METADATA_HEADER, CACHE_MISS_VALUE)
+        if (!res.hasHeader('cache-control')) {
+          const statusCode = res.statusCode ?? 200
+          res.setHeader(
+            'cache-control',
+            isCacheableStatus(statusCode) ? CACHE_CONTROL_CACHEABLE : CACHE_CONTROL_UNCACHEABLE,
+          )
         }
       }
-      // eslint-disable-next-line prefer-rest-params
-      return originalEnd.apply(this, arguments)
+
+      // build safe argument list
+      const callArgs: unknown[] = [chunk]
+      if (encoding !== undefined) callArgs.push(encoding)
+      callArgs.push((err?: Error) => {
+        if (typeof cb === 'function') cb(err)
+        if (err != null) return
+        pendingWrites--
+        if (shouldBuffer) {
+          const normalized = toBuffer(chunk, encoding)
+          if (normalized) chunks.push(normalized)
+        }
+      })
+
+      return callArgs
     }
 
+    const originalWrite = res.write
+    const originalEnd = res.end
+    res.write = (...args: unknown[]) => originalWrite.apply(res, buildChunkArgs(...args))
+    res.end = (...args: unknown[]) => originalEnd.apply(res, buildChunkArgs(...args))
+
     let done = false
-    // persist cacheable responses once the handler finishes (finish/close parity with express)
-    const finalize = async () => {
+    let queued = false
+
+    const onClose = () => {
       if (done) return
       done = true
       cleanup()
 
-      if (!shouldBuffer) {
+      if (res.errored || !queued || pendingWrites > 0 || !shouldBuffer) {
+        // aborted, errored, incomplete or head request -> skip
         return
       }
 
+      // skip uncacheable responses
       const statusCode = res.statusCode
       if (!isCacheableStatus(statusCode)) {
         return
       }
 
-      const bodyBuffer = chunks.length > 0 ? Buffer.concat(chunks) : Buffer.alloc(0)
       const payload: CachedPayload = {
         status: statusCode,
         headers: collectHeaders(res),
         encoding: 'base64',
-        body: bodyBuffer.toString('base64'),
+        body: Buffer.concat(chunks).toString('base64'),
       }
 
-      await writeCachedResponse(file, payload)
+      void writeCachedResponse(file, payload)
+    }
+
+    const onFinish = () => {
+      queued = true
+
+      // some providers might not emit 'close' and buffer the response
+      if (pendingWrites === 0) {
+        onClose()
+      }
     }
 
     const cleanup = () => {
-      res.off('finish', finalize)
-      res.off('close', finalize)
+      res.off('finish', onFinish)
+      res.off('close', onClose)
       res.write = originalWrite
       res.end = originalEnd
     }
 
-    res.on('finish', finalize)
-    res.on('close', finalize)
+    res.once('finish', onFinish)
+    res.once('close', onClose)
 
     try {
       await handler(req, res)

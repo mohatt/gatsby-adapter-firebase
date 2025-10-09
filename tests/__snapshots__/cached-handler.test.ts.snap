@@ -1,0 +1,228 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createCachedHandler() > caches 404 responses > cache 1`] = `
+Map {
+  "gatsby-adapter-firebase/not-found/L21pc3Npbmc.json" => {
+    "body": "bWlzc2luZw==",
+    "encoding": "base64",
+    "headers": [
+      {
+        "name": "cache-control",
+        "value": "public, max-age=0, must-revalidate",
+      },
+    ],
+    "status": 404,
+  },
+}
+`;
+
+exports[`createCachedHandler() > caches 404 responses > response[hit] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "7",
+    "date": "<any>",
+    "x-gatsby-firebase-cache": "HIT",
+  },
+  "status": 404,
+  "text": "missing",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > caches 404 responses > response[miss] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "7",
+    "date": "<any>",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 404,
+  "text": "missing",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > does not cache non-cacheable status codes > cache 1`] = `Map {}`;
+
+exports[`createCachedHandler() > does not cache non-cacheable status codes > response[miss] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "no-store",
+    "connection": "close",
+    "content-length": "5",
+    "date": "<any>",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 500,
+  "text": "error",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > does not cache non-cacheable status codes > response[repeat] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "no-store",
+    "connection": "close",
+    "content-length": "5",
+    "date": "<any>",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 500,
+  "text": "error",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > handles write errors correctly > cache 1`] = `Map {}`;
+
+exports[`createCachedHandler() > handles write errors correctly > response[miss] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "date": "<any>",
+    "transfer-encoding": "chunked",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 200,
+  "text": "1-3",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > handles write errors correctly > response[repeat] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "date": "<any>",
+    "transfer-encoding": "chunked",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 200,
+  "text": "1-3",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > cache 1`] = `
+Map {
+  "gatsby-adapter-firebase/head/L2hlYWQ.json" => {
+    "body": "cGF5bG9hZA==",
+    "encoding": "base64",
+    "headers": [
+      {
+        "name": "cache-control",
+        "value": "public, max-age=0, must-revalidate",
+      },
+    ],
+    "status": 200,
+  },
+}
+`;
+
+exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > response[get] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "7",
+    "date": "<any>",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 200,
+  "text": "payload",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > response[head] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "7",
+    "date": "<any>",
+    "x-gatsby-firebase-cache": "HIT",
+  },
+  "status": 200,
+  "text": undefined,
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > serves streaming responses correctly > cache 1`] = `
+Map {
+  "gatsby-adapter-firebase/function-id/L2hlbGxv.json" => {
+    "body": "aGVsbG8sIHdvcmxk",
+    "encoding": "base64",
+    "headers": [
+      {
+        "name": "cache-control",
+        "value": "public, max-age=0, must-revalidate",
+      },
+      {
+        "name": "set-cookie",
+        "value": [
+          "a=1",
+          "b=2",
+        ],
+      },
+    ],
+    "status": 200,
+  },
+}
+`;
+
+exports[`createCachedHandler() > serves streaming responses correctly > response[hit] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "12",
+    "date": "<any>",
+    "set-cookie": [
+      "a=1",
+      "b=2",
+    ],
+    "x-gatsby-firebase-cache": "HIT",
+  },
+  "status": 200,
+  "text": "hello, world",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > serves streaming responses correctly > response[miss] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "date": "<any>",
+    "set-cookie": [
+      "a=1",
+      "b=2",
+    ],
+    "transfer-encoding": "chunked",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 200,
+  "text": "hello, world",
+  "type": "",
+}
+`;
