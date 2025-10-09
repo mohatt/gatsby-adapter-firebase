@@ -10,6 +10,10 @@ Map {
         "name": "cache-control",
         "value": "public, max-age=0, must-revalidate",
       },
+      {
+        "name": "content-length",
+        "value": 7,
+      },
     ],
     "status": 404,
   },
@@ -126,6 +130,10 @@ Map {
         "name": "cache-control",
         "value": "public, max-age=0, must-revalidate",
       },
+      {
+        "name": "content-length",
+        "value": 7,
+      },
     ],
     "status": 200,
   },
@@ -175,11 +183,12 @@ Map {
         "value": "public, max-age=0, must-revalidate",
       },
       {
-        "name": "set-cookie",
-        "value": [
-          "a=1",
-          "b=2",
-        ],
+        "name": "content-length",
+        "value": 12,
+      },
+      {
+        "name": "test-header",
+        "value": "test-value",
       },
     ],
     "status": 200,
@@ -195,10 +204,7 @@ exports[`createCachedHandler() > serves streaming responses correctly > response
     "connection": "close",
     "content-length": "12",
     "date": "<any>",
-    "set-cookie": [
-      "a=1",
-      "b=2",
-    ],
+    "test-header": "test-value",
     "x-gatsby-firebase-cache": "HIT",
   },
   "status": 200,
@@ -214,10 +220,7 @@ exports[`createCachedHandler() > serves streaming responses correctly > response
     "cache-control": "public, max-age=0, must-revalidate",
     "connection": "close",
     "date": "<any>",
-    "set-cookie": [
-      "a=1",
-      "b=2",
-    ],
+    "test-header": "test-value",
     "transfer-encoding": "chunked",
     "x-gatsby-firebase-cache": "MISS",
   },

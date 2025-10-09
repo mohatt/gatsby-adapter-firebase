@@ -69,7 +69,7 @@ describe('createCachedHandler()', { timeout: 60_000 }, () => {
   it('serves streaming responses correctly', async () => {
     const [handler, agent] = createTestApp('function-id', async (_req, res) => {
       res.statusCode = 200
-      res.setHeader('Set-Cookie', ['a=1', 'b=2'])
+      res.setHeader('Test-Header', 'test-value')
       res.write('hello')
       res.write(', ')
       res.end('world')

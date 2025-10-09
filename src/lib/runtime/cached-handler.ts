@@ -32,7 +32,8 @@ const EXCLUDED_CACHE_HEADER_NAMES = [
   'trailer',
   'transfer-encoding',
   'upgrade',
-  'content-length', // derived from body; recomputed on replay
+  'set-cookie', // prevent cross-user cookie replay
+  'content-length', // derived from body
   'x-gatsby-firebase-cache', // internal metadata
 ]
 
@@ -92,14 +93,17 @@ const toBuffer = (chunk: unknown, encoding?: unknown): Buffer | null => {
 }
 
 // capture cacheable headers (without hop-by-hop metadata) for storage
-const collectHeaders = (res: Response) =>
-  Object.entries(res.getHeaders())
+const createCachedHeaders = (res: Response, contentLength: number) => {
+  const headers = Object.entries(res.getHeaders())
     .filter(([name, value]) => {
       if (!name || value == null) return false
       return !EXCLUDED_CACHE_HEADER_NAMES.includes(name.toLowerCase())
     })
     .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  headers.push({ name: 'content-length', value: contentLength })
+  headers.sort((a, b) => a.name.localeCompare(b.name))
+  return headers
+}
 
 // encode function id + normalized path into a stable bucket object key
 const createCacheKey = (functionId: string, req: Request) => {
@@ -184,13 +188,13 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
       res.status(cached.status)
 
       const buffer = Buffer.from(cached.body, cached.encoding)
-      res.set('content-length', buffer.byteLength.toString())
       res.end(buffer)
       return
     }
 
     let pendingWrites = 0
-    const chunks: Buffer[] = []
+    let totalLength = 0
+    const bufferList: Buffer[] = []
     const shouldBuffer = method === 'GET'
 
     // intercept writes to buffer the body and set cache-control once status code is known
@@ -229,8 +233,11 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
         if (err != null) return
         pendingWrites--
         if (shouldBuffer) {
-          const normalized = toBuffer(chunk, encoding)
-          if (normalized) chunks.push(normalized)
+          const buffer = toBuffer(chunk, encoding)
+          if (buffer) {
+            bufferList.push(buffer)
+            totalLength += buffer.length
+          }
         }
       })
 
@@ -239,8 +246,16 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
 
     const originalWrite = res.write
     const originalEnd = res.end
-    res.write = (...args: unknown[]) => originalWrite.apply(res, buildChunkArgs(...args))
-    res.end = (...args: unknown[]) => originalEnd.apply(res, buildChunkArgs(...args))
+    res.write = new Proxy(originalWrite, {
+      apply(target, thisArg, args) {
+        return Reflect.apply(target, thisArg, buildChunkArgs(...args))
+      },
+    })
+    res.end = new Proxy(originalEnd, {
+      apply(target, thisArg, args) {
+        return Reflect.apply(target, thisArg, buildChunkArgs(...args))
+      },
+    })
 
     let done = false
     let queued = false
@@ -263,9 +278,9 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
 
       const payload: CachedPayload = {
         status: statusCode,
-        headers: collectHeaders(res),
+        headers: createCachedHeaders(res, totalLength),
         encoding: 'base64',
-        body: Buffer.concat(chunks).toString('base64'),
+        body: Buffer.concat(bufferList, totalLength).toString('base64'),
       }
 
       void writeCachedResponse(file, payload)
