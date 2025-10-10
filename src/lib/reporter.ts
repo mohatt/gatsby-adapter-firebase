@@ -37,7 +37,7 @@ export class AdaptorReporter {
     let mainError: Error | undefined
 
     if (err instanceof AdaptorError) {
-      title = err.message
+      title = this.withBullets(err.message, err.bullets)
       mainError = err.originalError
     } else if (err instanceof Error) {
       mainError = err
@@ -64,31 +64,35 @@ export class AdaptorReporter {
   /**
    * Logs an error and terminates the build process.
    */
-  panic(phase: string, err: string | AdaptorError | Error): never {
-    const meta = this.createError(phase, err)
+  panic(phase: string, err: string | AdaptorError | Error, bullets?: string[]): never {
+    const error = typeof err === 'string' ? this.withBullets(err, bullets) : err
+    const meta = this.createError(phase, error)
     return this.ref.panic(meta)
   }
 
   /**
    * Logs a warning message in the Gatsby CLI.
    */
-  warn(message: string) {
-    const warning = `[${ADAPTOR}]: ${message}`
-    this.ref.warn(warning)
+  warn(message: string, bullets?: string[]) {
+    this.ref.warn(`[${ADAPTOR}]: ${this.withBullets(message, bullets)}`)
   }
 
   /**
    * Logs an info message in the Gatsby CLI.
    */
-  info(message: string) {
-    this.ref.info(`[${ADAPTOR}]: ${message}`)
+  info(message: string, bullets?: string[]) {
+    this.ref.info(`[${ADAPTOR}]: ${this.withBullets(message, bullets)}`)
   }
 
   /**
    * Logs a verbose message in the Gatsby CLI.
    */
-  verbose(message: string) {
-    this.ref.verbose(`[${ADAPTOR}]: ${message}`)
+  verbose(message: string, bullets?: string[]) {
+    this.ref.verbose(`[${ADAPTOR}]: ${this.withBullets(message, bullets)}`)
+  }
+
+  private withBullets(message: string, bullets?: string[]) {
+    return `${message}${bullets?.length ? `\n - ${bullets.join('\n - ')}` : ''}`
   }
 }
 
@@ -151,11 +155,13 @@ export interface IErrorMeta {
 export class AdaptorError extends Error {
   /**
    * @param message - A description of the error.
-   * @param originalError - The original error that caused this issue (optional).
+   * @param originalError - The original error that caused this issue.
+   * @param bullets - Extra bullet points to include in the error message.
    */
   constructor(
     message: string,
     public readonly originalError?: Error,
+    public readonly bullets?: string[],
   ) {
     super(message)
   }

@@ -219,6 +219,8 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     let pendingWrites = 0
     let totalLength = 0
     const bufferList: Buffer[] = []
+    // skip buffering HEAD requests
+    // but we still have to run the same logic for both GET and HEAD for perfect header parity
     const shouldBuffer = method === 'GET'
 
     const addChunk = (chunk: unknown, encoding?: unknown) => {

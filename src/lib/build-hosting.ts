@@ -18,9 +18,9 @@ export interface BuildHostingOptions {
 export interface BuildHostingArgs {
   routesManifest: RoutesManifest
   pathPrefix: string
-  reporter: AdaptorReporter
-  functionsMap: ReadonlyMap<string, FunctionVariants>
   options: BuildHostingOptions
+  reporter: AdaptorReporter
+  functionsMap?: ReadonlyMap<string, FunctionVariants>
 }
 
 export interface BuildHostingResult {
@@ -108,7 +108,7 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
     const source = normalizeSource(routePath, pathPrefix)
 
     if (route.type === 'function') {
-      const variants = functionsMap.get(route.functionId)
+      const variants = functionsMap!.get(route.functionId)
       if (!variants) {
         reporter.warn(
           `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${source}`,

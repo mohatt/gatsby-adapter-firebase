@@ -30,8 +30,8 @@ export interface BuildFunctionsArgs {
 
 export interface BuildFunctionsResult {
   functionsMap: ReadonlyMap<string, FunctionVariants>
-  workspace?: FunctionsWorkspace | null
-  config?: FirebaseFunctionsJson | null
+  workspace: FunctionsWorkspace
+  config: FirebaseFunctionsJson
 }
 
 const MAX_FUNCTION_NAME_LENGTH = 63
@@ -101,7 +101,9 @@ const resolveFunctionConfig = <T extends FunctionConfig>(base?: T, override?: T)
   return Object.keys(result).length ? result : undefined
 }
 
-export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFunctionsResult> => {
+export const buildFunctions = async (
+  args: BuildFunctionsArgs,
+): Promise<BuildFunctionsResult | null> => {
   const {
     projectRoot,
     routesManifest,
@@ -121,24 +123,23 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
     throw new AdaptorError('functionsOutDir must be within the project root')
   }
 
-  const functionsMap = new Map<string, FunctionVariants>()
+  try {
+    await fs.rm(outDir, { recursive: true, force: true })
+  } catch (error) {
+    throw new AdaptorError(`Failed to clean functions directory ${outDir}`, error)
+  }
 
   if (!functionsManifest.length) {
-    try {
-      await fs.rm(outDir, { recursive: true, force: true })
-    } catch (error) {
-      reporter.warn(`Failed to clean empty functions directory ${outDir}: ${String(error)}`)
-    }
-    return { workspace: null, config: null, functionsMap }
+    return null
   }
 
   try {
-    await fs.rm(outDir, { recursive: true, force: true })
     await fs.mkdir(outDir, { recursive: true })
   } catch (error) {
-    throw new AdaptorError(`Failed to re-create functions directory ${outDir}`, error)
+    throw new AdaptorError(`Failed to create functions directory ${outDir}`, error)
   }
 
+  const functionsMap = new Map<string, FunctionVariants>()
   const workspace: FunctionsWorkspace = { dir: outDir, files: [], exports: [] }
   const cachedIds: ReadonlySet<string> = routesManifest.reduce((accu, route) => {
     if (route.type === 'function' && route.cache) {
@@ -155,9 +156,7 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
 
   for (const fn of functionsManifest) {
     if (functionsMap.has(fn.functionId)) {
-      reporter.warn(
-        `Duplicate functionId "${fn.functionId}" detected; keeping the first definition only`,
-      )
+      reporter.warn(`Duplicate functionId \`${fn.functionId}\`; keeping the first definition only`)
       continue
     }
 
@@ -195,11 +194,8 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
       // Skip the function if entry file is missing, or +2 required files are missing
       const skip = missingFiles.some(({ isEntry }, i) => isEntry || i > 1)
       reporter.warn(
-        `${skip ? 'Skipping function' : 'Function'} \`${fn.functionId}\`: some required files could not be copied:${[
-          '',
-        ]
-          .concat(missingFiles.map(({ file, error }) => `${toPosix(file)}: ${error}`))
-          .join('\n - ')}`,
+        `${skip ? 'Skipping function' : 'Function'} \`${fn.functionId}\`: some required files could not be copied:`,
+        missingFiles.map(({ file, error }) => `${toPosix(file)}: ${error}`),
       )
       if (skip) {
         continue
@@ -241,8 +237,7 @@ export const buildFunctions = async (args: BuildFunctionsArgs): Promise<BuildFun
         `Failed to clean functions directory ${outDir} after skipping functions: ${String(error)}`,
       )
     }
-    functionsMap.clear()
-    return { workspace: null, config: null, functionsMap }
+    return null
   }
 
   const runtimeModulePath = resolveDistPath('lib/runtime.cjs')

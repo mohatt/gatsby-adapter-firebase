@@ -33,23 +33,23 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
             options,
           })
 
-          const { workspace, config } = result
-          if (config) {
-            const infoParts = [
-              `codebase=${result.config.codebase}`,
-              `files=${workspace.files.length}`,
-              `functions=${workspace.exports.length} (use --verbose for breakdown)`,
-            ]
-            setStatus(infoParts.join(', '))
-
-            reporter.verbose(
-              `Functions codebase: ${[`${config.codebase} → ${workspace.dir}`]
-                .concat(workspace.exports.map((fn) => `${fn.entryFile} → ${fn.deployId}`))
-                .join('\n - ')}`,
-            )
-          } else {
+          if (!functionsManifest.length || !result) {
             setStatus('skipped')
+            return result
           }
+
+          const { workspace, config } = result
+          const infoParts = [
+            `codebase=${result.config.codebase}`,
+            `files=${workspace.files.length}`,
+            `functions=${workspace.exports.length} (use --verbose for breakdown)`,
+          ]
+          setStatus(infoParts.join(', '))
+
+          reporter.verbose(
+            `Functions codebase: ${config.codebase} → ${workspace.dir}`,
+            workspace.exports.map((fn) => `${fn.entryFile} → ${fn.deployId}`),
+          )
 
           return result
         })
@@ -62,7 +62,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
             pathPrefix,
             reporter,
             options,
-            functionsMap: functionsResult.functionsMap,
+            functionsMap: functionsResult?.functionsMap,
           })
 
           const { target, redirects, headers, rewrites } = result.config
@@ -81,7 +81,7 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
         const firebaseJsonFile = path.join(projectRoot, 'firebase.json')
         const result = await buildConfig(firebaseJsonFile, {
           hosting: hostingResult.config,
-          functions: functionsResult.config,
+          functions: functionsResult?.config,
         })
 
         setStatus(
@@ -96,11 +96,11 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
       reporter = new AdaptorReporter(gatsbyReporter)
       const result = await validateOptions(userOptions ?? {})
       if ('errors' in result) {
-        reporter.panic('options', `Invalid options provided\n - ${result.errors.join('\n - ')}`)
+        reporter.panic('options', `Invalid options provided`, result.errors)
       }
       options = result.options
       if (result.warnings) {
-        reporter.warn(`Unsupported options provided\n - ${result.warnings.join('\n - ')}`)
+        reporter.warn('Unsupported options provided', result.warnings)
       }
       reporter.verbose(`version: ${readPackageJson().version}`)
 
