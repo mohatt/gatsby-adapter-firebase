@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import _ from 'lodash'
 import express from 'express'
 import request from 'supertest'
-import { createCachedHandler, CachedPayload } from '../src/lib/runtime/cached-handler.js'
+import { createCachedHandler } from '../src/lib/runtime/cached-handler.js'
 import type { FunctionHandler } from '../src/lib/runtime.js'
 
-const cache = new Map<string, CachedPayload>()
+const cache = new Map<string, Buffer>()
 
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(() => ({})),
@@ -23,11 +23,12 @@ vi.mock('firebase-admin/storage', () => ({
           if (!payload) {
             throw new Error(`No stored payload for ${name}`)
           }
-          return [Buffer.from(JSON.stringify(payload), 'utf8')]
+          return [Buffer.from(payload)]
         },
         async save(contents: string | Buffer) {
-          const normalized = typeof contents === 'string' ? contents : contents.toString('utf8')
-          cache.set(name, JSON.parse(normalized))
+          const buffer =
+            typeof contents === 'string' ? Buffer.from(contents, 'utf8') : Buffer.from(contents)
+          cache.set(name, buffer)
         },
       }),
     }),
@@ -58,7 +59,17 @@ const assertResponse = (
   expect(snap).toMatchSnapshot(`response[${key}]`)
 }
 
-const assertCacheState = () => expect(cache).toMatchSnapshot('cache')
+const assertCacheState = (encoding: BufferEncoding = 'utf8') => {
+  const decodedCache = new Map(
+    [...cache.entries()].map(([key, buffer]) => {
+      const newlineIndex = buffer.indexOf(0x0a)
+      const metadata = JSON.parse(buffer.subarray(0, newlineIndex).toString('utf8'))
+      const body = buffer.subarray(newlineIndex + 1)
+      return [key, [metadata, body.toString(encoding)]]
+    }),
+  )
+  expect(decodedCache).toMatchSnapshot('cache')
+}
 
 describe('createCachedHandler()', { timeout: 60_000 }, () => {
   beforeEach(() => {

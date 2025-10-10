@@ -4,11 +4,9 @@ import type { Bucket, File } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, Request, Response } from './types.js'
 
-export interface CachedPayload {
+export interface CachedResponseMetadata {
   status: number
   headers: Array<{ name: string; value: OutgoingHttpHeader }>
-  encoding: 'base64'
-  body: string
 }
 
 type AllowedMethod = 'GET' | 'HEAD'
@@ -116,16 +114,31 @@ const createCacheKey = (functionId: string, req: Request) => {
     (typeof req.url === 'string' && req.url) ||
     '/'
   const encoded = Buffer.from(path).toString('base64url')
-  return `${PREFIX}/${functionId}/${encoded}.json`
+  return `${PREFIX}/${functionId}/${encoded}.bin`
 }
 
-// load a cached response from storage, tolerating missing objects and parse failures
-const readCachedResponse = async (file: File): Promise<CachedPayload | null> => {
+interface CachedResponse {
+  metadata: CachedResponseMetadata
+  body: Buffer
+}
+
+const readCachedResponse = async (file: File): Promise<CachedResponse | null> => {
   try {
     const [exists] = await file.exists()
     if (!exists) return null
-    const [content] = await file.download({ validation: false })
-    return JSON.parse(content.toString('utf8'))
+    const [downloaded] = await file.download({ validation: false })
+    const newlineIndex = downloaded.indexOf(0x0a) // '\n'
+    if (newlineIndex === -1) {
+      throw new Error(`Missing metadata delimiter`)
+    }
+    const metadata: CachedResponseMetadata = JSON.parse(
+      downloaded.subarray(0, newlineIndex).toString('utf8'),
+    )
+    if (!metadata || typeof metadata.status !== 'number' || !Array.isArray(metadata.headers)) {
+      throw new Error(`Invalid metadata`)
+    }
+    const body = downloaded.subarray(newlineIndex + 1)
+    return { metadata, body }
   } catch (error) {
     console.error(`[${PREFIX}] Failed to read cached response for ${file.name}:`, error)
   }
@@ -133,11 +146,12 @@ const readCachedResponse = async (file: File): Promise<CachedPayload | null> => 
 }
 
 // persist the captured payload for future hits
-const writeCachedResponse = async (file: File, payload: CachedPayload) => {
+const writeCachedResponse = async (file: File, metadata: CachedResponseMetadata, body: Buffer) => {
   try {
-    await file.save(JSON.stringify(payload), {
+    const data = Buffer.concat([Buffer.from(`${JSON.stringify(metadata)}\n`, 'utf8'), body])
+    await file.save(data, {
       resumable: false,
-      contentType: 'application/json',
+      metadata: { contentType: 'application/octet-stream' },
     })
   } catch (error) {
     console.error(`[${PREFIX}] Failed to write cached response for ${file.name}:`, error)
@@ -169,7 +183,7 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     const bucket = getBucket()
     if (!bucket) {
       res.set(CACHE_METADATA_HEADER, CACHE_PASS_VALUE)
-      if (!res.getHeader('cache-control')) {
+      if (!res.hasHeader('cache-control')) {
         res.set('cache-control', CACHE_CONTROL_UNCACHEABLE)
       }
       await handler(req, res)
@@ -182,15 +196,19 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     const cached = await readCachedResponse(file)
     if (cached) {
       // apply cached headers to the response
-      for (const header of cached.headers) {
+      for (const header of cached.metadata.headers) {
         // we just pass the value we got from the cache, express should handle the rest
         res.set(header.name, header.value as any)
       }
       res.set(CACHE_METADATA_HEADER, CACHE_HIT_VALUE)
-      res.status(cached.status)
+      res.status(cached.metadata.status)
 
-      const buffer = Buffer.from(cached.body, cached.encoding)
-      res.end(buffer)
+      if (method === 'HEAD') {
+        res.end()
+        return
+      }
+
+      res.end(cached.body)
       return
     }
 
@@ -199,28 +217,32 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     const bufferList: Buffer[] = []
     const shouldBuffer = method === 'GET'
 
+    const addChunk = (chunk: unknown, encoding?: unknown) => {
+      pendingWrites--
+      if (shouldBuffer) {
+        const buffer = toBuffer(chunk, encoding)
+        if (buffer) {
+          bufferList.push(buffer)
+          totalLength += buffer.length
+        }
+      }
+    }
+
     // intercept writes to buffer the body and set cache-control once status code is known
-    const buildChunkArgs = (...args: unknown[]) => {
+    const buildChunkArgs = (chunk: unknown, a?: unknown, b?: unknown) => {
       pendingWrites++
 
       // node allows: write(chunk), write(chunk, cb), write(chunk, encoding), write(chunk, encoding, cb)
-      const chunk = args[0]
-      let encoding: BufferEncoding | undefined
-      let cb: ((err?: Error) => void) | undefined
-
-      // normalize args
-      if (typeof args[1] === 'string') {
-        encoding = args[1] as BufferEncoding
-        if (typeof args[2] === 'function') cb = args[2] as () => void
-      } else if (typeof args[1] === 'function') {
-        cb = args[1] as () => void
-      }
+      const encoding = typeof a === 'string' ? (a as BufferEncoding) : undefined
+      const cb = (typeof a === 'function' ? a : typeof b === 'function' ? b : undefined) as
+        | ((err?: Error) => void)
+        | undefined
 
       if (!res.headersSent) {
-        res.setHeader(CACHE_METADATA_HEADER, CACHE_MISS_VALUE)
+        res.set(CACHE_METADATA_HEADER, CACHE_MISS_VALUE)
         if (!res.hasHeader('cache-control')) {
           const statusCode = res.statusCode ?? 200
-          res.setHeader(
+          res.set(
             'cache-control',
             isCacheableStatus(statusCode) ? CACHE_CONTROL_CACHEABLE : CACHE_CONTROL_UNCACHEABLE,
           )
@@ -228,19 +250,10 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
       }
 
       // build safe argument list
-      const callArgs: unknown[] = [chunk]
-      if (encoding !== undefined) callArgs.push(encoding)
+      const callArgs = encoding ? [chunk, encoding] : [chunk]
       callArgs.push((err?: Error) => {
-        if (typeof cb === 'function') cb(err)
-        if (err != null) return
-        pendingWrites--
-        if (shouldBuffer) {
-          const buffer = toBuffer(chunk, encoding)
-          if (buffer) {
-            bufferList.push(buffer)
-            totalLength += buffer.length
-          }
-        }
+        cb?.(err)
+        if (err == null) addChunk(chunk, encoding)
       })
 
       return callArgs
@@ -249,12 +262,12 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
     const originalWrite = res.write
     const originalEnd = res.end
     res.write = new Proxy(originalWrite, {
-      apply(target, thisArg, args) {
+      apply(target, thisArg, args: [unknown]) {
         return Reflect.apply(target, thisArg, buildChunkArgs(...args))
       },
     })
     res.end = new Proxy(originalEnd, {
-      apply(target, thisArg, args) {
+      apply(target, thisArg, args: [unknown]) {
         return Reflect.apply(target, thisArg, buildChunkArgs(...args))
       },
     })
@@ -278,14 +291,13 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
         return
       }
 
-      const payload: CachedPayload = {
+      const body = Buffer.concat(bufferList, totalLength)
+      const metadata: CachedResponseMetadata = {
         status: statusCode,
         headers: createCachedHeaders(res, totalLength),
-        encoding: 'base64',
-        body: Buffer.concat(bufferList, totalLength).toString('base64'),
       }
 
-      void writeCachedResponse(file, payload)
+      void writeCachedResponse(file, metadata, body)
     }
 
     const onFinish = () => {
