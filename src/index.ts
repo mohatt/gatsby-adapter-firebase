@@ -95,14 +95,10 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
     async config({ reporter: gatsbyReporter }) {
       reporter = new AdaptorReporter(gatsbyReporter)
       const result = await validateOptions(userOptions ?? {})
-      if ('errors' in result) {
-        reporter.panic('options', `Invalid options provided`, result.errors)
-      }
-      options = result.options
-      if (result.warnings) {
-        reporter.warn('Unsupported options provided', result.warnings)
-      }
+      if ('errors' in result) reporter.panic('options', `Invalid options provided`, result.errors)
+      if (result.warnings) reporter.warn('Unsupported options provided', result.warnings)
       reporter.verbose(`version: ${readPackageJson().version}`)
+      options = result.options
 
       const deployURL = process.env['DEPLOY_URL']
       let excludeDatastoreFromEngineFunction = options.excludeDatastoreFromEngineFunction
