@@ -5,7 +5,7 @@ import request from 'supertest'
 import { createCachedHandler } from '../src/lib/runtime/cached-handler.js'
 import type { FunctionHandler } from '../src/lib/runtime.js'
 
-const cache = new Map<string, Buffer>()
+const cache = new Map<string, { file: Buffer; metadata: object }>()
 
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(() => ({})),
@@ -23,12 +23,12 @@ vi.mock('firebase-admin/storage', () => ({
           if (!payload) {
             throw new Error(`No stored payload for ${name}`)
           }
-          return [Buffer.from(payload)]
+          return [Buffer.from(payload.file)]
         },
-        async save(contents: string | Buffer) {
-          const buffer =
-            typeof contents === 'string' ? Buffer.from(contents, 'utf8') : Buffer.from(contents)
-          cache.set(name, buffer)
+        async save(data: string | Buffer, options?: { metadata?: object }) {
+          const file = typeof data === 'string' ? Buffer.from(data, 'utf8') : Buffer.from(data)
+          const { metadata } = options ?? {}
+          cache.set(name, { file, metadata })
         },
       }),
     }),
@@ -61,11 +61,12 @@ const assertResponse = (
 
 const assertCacheState = (encoding: BufferEncoding = 'utf8') => {
   const decodedCache = new Map(
-    [...cache.entries()].map(([key, buffer]) => {
-      const newlineIndex = buffer.indexOf(0x0a)
-      const metadata = JSON.parse(buffer.subarray(0, newlineIndex).toString('utf8'))
-      const body = buffer.subarray(newlineIndex + 1)
-      return [key, [metadata, body.toString(encoding)]]
+    [...cache.entries()].map(([key, entry]) => {
+      const { file, metadata } = entry
+      const newlineIndex = file.indexOf(0x0a)
+      const header = JSON.parse(file.subarray(0, newlineIndex).toString('utf8'))
+      const body = file.subarray(newlineIndex + 1).toString(encoding)
+      return [key, { file: { header, body }, metadata }]
     }),
   )
   expect(decodedCache).toMatchSnapshot('cache')

@@ -148,10 +148,14 @@ const readCachedResponse = async (file: File): Promise<CachedResponse | null> =>
 // persist the captured payload for future hits
 const writeCachedResponse = async (file: File, metadata: CachedResponseMetadata, body: Buffer) => {
   try {
-    const data = Buffer.concat([Buffer.from(`${JSON.stringify(metadata)}\n`, 'utf8'), body])
+    const header = `${JSON.stringify(metadata)}\n`
+    const data = Buffer.concat([Buffer.from(header, 'utf8'), body])
     await file.save(data, {
       resumable: false,
-      metadata: { contentType: 'application/octet-stream' },
+      metadata: {
+        contentType: 'application/octet-stream',
+        metadata: { headerLength: header.length },
+      },
     })
   } catch (error) {
     console.error(`[${PREFIX}] Failed to write cached response for ${file.name}:`, error)
