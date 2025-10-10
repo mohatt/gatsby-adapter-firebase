@@ -37,6 +37,9 @@ const EXCLUDED_CACHE_HEADER_NAMES = [
   'x-gatsby-firebase-cache', // internal metadata
 ]
 
+// used for storage object naming and error reporting
+const PREFIX = 'gatsby-adapter-firebase'
+
 let cachedBucket: Bucket | null | undefined
 
 // lazily resolve and memoize the default storage bucket; cache null if initialization fails
@@ -55,27 +58,27 @@ const getBucket = () => {
 // normalize the request path so equivalent URLs land on the same cache entry
 const normalizePath = (value: string | undefined) => {
   if (!value || value === '/') return '/'
-
   // strip query and hash
   const index = value.search(/[?#]/)
-  let normalized = index === -1 ? value : value.slice(0, index)
-
-  // ensure one leading slash and no duplicate slashes
-  normalized = `/${normalized}`.replace(/\/{2,}/g, '/')
-
-  // no trailing slashes
-  return normalized !== '/' && normalized.endsWith('/') //
-    ? normalized.slice(0, -1)
-    : normalized
+  const normalized = index === -1 ? value : value.slice(0, index)
+  // ensure one leading slash
+  return normalized.startsWith('/') ? normalized : `/${normalized}`
 }
 
-const getRequestPath = (req: Request) => {
-  const candidate =
-    (typeof req.originalUrl === 'string' && req.originalUrl) ||
-    (typeof req.path === 'string' && req.path) ||
-    (typeof req.url === 'string' && req.url) ||
-    '/'
-  return normalizePath(candidate)
+const prepareRequest = (originalReq: Request) => {
+  const req = Object.create(originalReq) as Request
+
+  const assignIfString = (key: string) => {
+    if (typeof req[key] === 'string') {
+      req[key] = normalizePath(req[key])
+    }
+  }
+
+  assignIfString('url')
+  assignIfString('originalUrl')
+  req.query = Object.create(null)
+  void req.path // trigger getter for reparse
+  return req
 }
 
 // convert any express chunk shape into a Buffer so we can concatenate responses safely
@@ -107,9 +110,13 @@ const createCachedHeaders = (res: Response, contentLength: number) => {
 
 // encode function id + normalized path into a stable bucket object key
 const createCacheKey = (functionId: string, req: Request) => {
-  const path = getRequestPath(req)
+  const path =
+    (typeof req.originalUrl === 'string' && req.originalUrl) ||
+    (typeof req.path === 'string' && req.path) ||
+    (typeof req.url === 'string' && req.url) ||
+    '/'
   const encoded = Buffer.from(path).toString('base64url')
-  return `gatsby-adapter-firebase/${functionId}/${encoded}.json`
+  return `${PREFIX}/${functionId}/${encoded}.json`
 }
 
 // load a cached response from storage, tolerating missing objects and parse failures
@@ -120,10 +127,7 @@ const readCachedResponse = async (file: File): Promise<CachedPayload | null> => 
     const [content] = await file.download({ validation: false })
     return JSON.parse(content.toString('utf8'))
   } catch (error) {
-    console.error(
-      `[gatsby-adapter-firebase] Failed to read cached response for ${file.name}:`,
-      error,
-    )
+    console.error(`[${PREFIX}] Failed to read cached response for ${file.name}:`, error)
   }
   return null
 }
@@ -136,10 +140,7 @@ const writeCachedResponse = async (file: File, payload: CachedPayload) => {
       contentType: 'application/json',
     })
   } catch (error) {
-    console.error(
-      `[gatsby-adapter-firebase] Failed to write cached response for ${file.name}:`,
-      error,
-    )
+    console.error(`[${PREFIX}] Failed to write cached response for ${file.name}:`, error)
   }
 }
 
@@ -154,8 +155,8 @@ const isCacheableStatus = (statusCode: number) =>
 
 // Wrap the original handler with Firebase Storage backed response caching (2xx, 3xx, 404 only).
 export const createCachedHandler = (handler: FunctionHandler, id: string): FunctionHandler => {
-  return async (req, res) => {
-    const method = (req.method?.toUpperCase() as AllowedMethod) ?? 'GET'
+  return async (originalReq, res) => {
+    const method = (originalReq.method?.toUpperCase() as AllowedMethod) ?? 'GET'
     if (!ALLOWED_METHODS.includes(method)) {
       res.status(HTTP_STATUS_METHOD_NOT_ALLOWED)
       res.set('allow', ALLOWED_METHODS.join(', '))
@@ -164,6 +165,7 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
       return
     }
 
+    const req = prepareRequest(originalReq)
     const bucket = getBucket()
     if (!bucket) {
       res.set(CACHE_METADATA_HEADER, CACHE_PASS_VALUE)

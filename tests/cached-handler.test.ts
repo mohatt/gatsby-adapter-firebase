@@ -102,6 +102,24 @@ describe('createCachedHandler()', { timeout: 60_000 }, () => {
     assertCacheState()
   })
 
+  it('strips query strings before invoking the wrapped handler', async () => {
+    const [handler, agent] = createTestApp('strip-query', async (_req, res) => {
+      res.status(204).end()
+    })
+
+    await agent.get('/stripped/path?foo=bar&baz=qux')
+    const [req] = handler.mock.lastCall ?? []
+    expect(req).toBeDefined()
+    expect(req.url).toBe('/stripped/path')
+    expect(req.originalUrl).toBe('/stripped/path')
+    expect(req.query).toEqual({})
+    expect((req as any)._parsedUrl).toMatchObject({
+      search: null,
+      query: null,
+      path: '/stripped/path',
+    })
+  })
+
   it('caches 404 responses', async () => {
     const [handler, agent] = createTestApp('not-found', async (_req, res) => {
       res.statusCode = 404
