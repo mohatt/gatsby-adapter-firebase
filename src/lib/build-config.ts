@@ -1,5 +1,6 @@
-import fs from 'node:fs/promises'
 import path from 'node:path'
+import fs from 'node:fs/promises'
+import stableStringify from 'safe-stable-stringify'
 import type { FirebaseJson, FirebaseFunctionsJson, FirebaseHostingJson } from './types.js'
 import { AdaptorError } from './reporter.js'
 import { toArray } from './utils.js'
@@ -95,7 +96,7 @@ export const buildConfig = async (
     delete config.functions
   }
 
-  const configJSON = `${JSON.stringify(config, null, 2)}\n`
+  const configJSON = `${stableStringify(config, null, 2)}\n`
   if (configJSON === currentJSON) {
     return { wrote: 0, config }
   }

@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase-admin/app'
 import { getStorage } from 'firebase-admin/storage'
 import type { Bucket, File } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
-import type { FunctionHandler, Request, Response } from './types.js'
+import type { FunctionHandler, FunctionMetadata, Request, Response } from './types.js'
 
 export interface CachedResponseMetadata {
   status: number
@@ -34,9 +34,6 @@ const EXCLUDED_CACHE_HEADER_NAMES = [
   'content-length', // derived from body
   'x-gatsby-firebase-cache', // internal metadata
 ]
-
-// used for storage object naming and error reporting
-const PREFIX = 'gatsby-adapter-firebase'
 
 let cachedBucket: Bucket | null | undefined
 
@@ -107,14 +104,14 @@ const createCachedHeaders = (res: Response, contentLength: number) => {
 }
 
 // encode function id + normalized path into a stable bucket object key
-const createCacheKey = (functionId: string, req: Request) => {
+const createCacheKey = (prefix: string, req: Request) => {
   const path =
     (typeof req.originalUrl === 'string' && req.originalUrl) ||
     (typeof req.path === 'string' && req.path) ||
     (typeof req.url === 'string' && req.url) ||
     '/'
   const encoded = Buffer.from(path).toString('base64url')
-  return `${PREFIX}/${functionId}/${encoded}.bin`
+  return `.gatsby-adapter-firebase/${prefix}/${encoded}.bin`
 }
 
 interface CachedResponse {
@@ -140,7 +137,10 @@ const readCachedResponse = async (file: File): Promise<CachedResponse | null> =>
     const body = downloaded.subarray(newlineIndex + 1)
     return { metadata, body }
   } catch (error) {
-    console.error(`[${PREFIX}] Failed to read cached response for ${file.name}:`, error)
+    console.error(
+      `[gatsby-adapter-firebase] Failed to read cached response for ${file.name}:`,
+      error,
+    )
   }
   return null
 }
@@ -158,7 +158,10 @@ const writeCachedResponse = async (file: File, metadata: CachedResponseMetadata,
       },
     })
   } catch (error) {
-    console.error(`[${PREFIX}] Failed to write cached response for ${file.name}:`, error)
+    console.error(
+      `[gatsby-adapter-firebase] Failed to write cached response for ${file.name}:`,
+      error,
+    )
   }
 }
 
@@ -172,7 +175,10 @@ const isCacheableStatus = (statusCode: number) =>
   statusCode === 404
 
 // Wrap the original handler with Firebase Storage backed response caching (2xx, 3xx, 404 only).
-export const createCachedHandler = (handler: FunctionHandler, id: string): FunctionHandler => {
+export const createCachedHandler = (
+  handler: FunctionHandler,
+  meta: Pick<FunctionMetadata, 'id' | 'version'>,
+): FunctionHandler => {
   return async (originalReq, res) => {
     const method = (originalReq.method?.toUpperCase() as AllowedMethod) ?? 'GET'
     if (!ALLOWED_METHODS.includes(method)) {
@@ -194,9 +200,9 @@ export const createCachedHandler = (handler: FunctionHandler, id: string): Funct
       return
     }
 
-    const cacheKey = createCacheKey(id, req)
+    // `meta.version` ensures that the cache is invalidated when the function is updated
+    const cacheKey = createCacheKey(`${meta.id}/${meta.version}`, req)
     const file = bucket.file(cacheKey)
-
     const cached = await readCachedResponse(file)
     if (cached) {
       // apply cached headers to the response

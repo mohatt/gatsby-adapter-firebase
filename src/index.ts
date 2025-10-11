@@ -41,14 +41,16 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
           const { workspace, config } = result
           const infoParts = [
             `codebase=${result.config.codebase}`,
-            `files=${workspace.files.length}`,
+            `files=${workspace.files.size}`,
             `functions=${workspace.exports.length} (use --verbose for breakdown)`,
           ]
           setStatus(infoParts.join(', '))
 
           reporter.verbose(
             `Functions codebase: ${config.codebase} → ${workspace.dir}`,
-            workspace.exports.map((fn) => `${fn.entryFile} → ${fn.deployId}`),
+            workspace.exports.map(
+              (fn) => `${path.relative(workspace.dir, fn.entryPath)} → ${fn.deployId}`,
+            ),
           )
 
           return result
@@ -126,4 +128,9 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
 }
 
 export default createAdapter
-export type { AdapterOptions }
+export type { AdapterOptions as GatsbyFirebaseAdapterOptions }
+export type {
+  GatsbyFirebaseFunctionRequest,
+  GatsbyFirebaseFunctionResponse,
+  GatsbyFirebaseFunctionConfig,
+} from './lib/runtime/types.js'

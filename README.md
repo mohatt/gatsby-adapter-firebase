@@ -4,7 +4,7 @@
 
 Gatsby [adapter](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/adapters/) for [Firebase](https://firebase.google.com/).
 
-This adapter enables following features on Firebase:
+This adapter enables the following features on Firebase:
 
 - [Redirects](https://www.gatsbyjs.com/docs/reference/config-files/actions/#createRedirect)
 - [HTTP Headers](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/headers/)
@@ -12,66 +12,155 @@ This adapter enables following features on Firebase:
 - [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/)
 - [Server-Side Rendering (SSR)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-server-side-rendering/)
 - [Gatsby Functions](https://www.gatsbyjs.com/docs/reference/functions/)
-- ~~Caching of builds between deploys~~
 - Gatsby Image and File CDN through Firebase Hosting’s global CDN
-  - [ ] Support for storing static assets in a separate Cloud Storage bucket
 
 ---
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [Options](#options)
+- [firebasejson](#firebasejson-generation)
+- [Firebase functions](#firebase-functions)
+- [Adapter options](#adapter-options)
+- [DSG and SSR functions](#dsg-functions)
 - [License](#license)
 
 ## Installation
 
 ```zsh
-$ npm install gatsby-adapter-firebase
+npm install gatsby-adapter-firebase
+```
+
+You will also need Firebase CLI if you're planning to do local deployments or use [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) to run the project locally:
+
+```zsh
+npm install -g firebase-tools
 ```
 
 ## Usage
 
-> **Note:** Your Gatsby version must be 5.12.0 or newer, which is where [adapters](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/adapters/) were introduced.
+> Your Gatsby version must be 5.12.0 or newer, which is when [adapters](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/adapters/) were introduced.
 
-Add `gatsby-adapter-firebase` to your [`gatsby-config`](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-config/) and configure the [`adapter`](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-config/#adapter) option.
+### Configure Gatsby
+
+Add the adapter to `gatsby-config.js`:
 
 ```js
-// `gatsby-config.js`
-import firebaseAdapter from 'gatsby-adapter-firebase'
+// gatsby-config.js
+const firebaseAdapter = require('gatsby-adapter-firebase').default
 
 /** @type {import('gatsby').GatsbyConfig} */
-export default {
+module.exports = {
   adapter: firebaseAdapter(),
 }
 ```
 
-```zsh
-$ npm run build
-```
-the above command will generate a firebase.json file or merge into existing one.
+### Build and deploy
 
-make sure you have firebase-tools installed globally.
-```zsh
-$ npm install -g firebase-tools
-```
+Run a Gatsby build as usual. The adapter hooks into Gatsby’s post-build phase:
 
 ```zsh
-$ firebase --project {} target:apply hosting gatsby {}
+npm run build
 ```
+
+This will create `.firebase/functions/` if you're using SSR, DSG, or functions and either create or update `firebase.json`.
+
+Next, point your Firebase Hosting target at the desired site (once per project):
 
 ```zsh
-$ firebase deploy
+firebase --project <project-id> target:apply hosting gatsby <site-id>
 ```
 
-## Options
+Finally, deploy:
 
-#### excludeDatastoreFromEngineFunction
-> `type: boolean, default = false`
+```zsh
+firebase deploy
+```
 
-If `true`, Gatsby will not include the LMDB datastore in the serverless functions used for SSR/DSG. Instead, it will upload the datastore to Firebase's CDN and download it on first load of the functions.
+Or test the project locally:
 
-> **Note:** This option requires setting `DEPLOY_URL={url}` environment variable when building your Gatsby site.
+```zsh
+firebase emulators:start --project demo-site
+```
 
+You will need the Firebase Storage emulator to be enabled in your `firebase.json`.
+
+```json
+{
+  "emulators": {
+    "storage": {
+      "port": 9199
+    }
+  }
+}
+```
+
+## firebase.json
+
+During `gatsby build` the adapter reads `firebase.json`, updates the entry matching the configured Hosting target (default `gatsby`), and writes it back.
+
+### Key behaviors:
+
+- Existing `hosting` entries for other targets are preserved.
+- The adapter merges the generated config into the entry for the target, replacing its `redirects`, `rewrites`, and `headers` with the data derived from Gatsby.
+- When Cloud Functions are produced, the `functions` section is merged by codebase name (default `gatsby`). Other codebases remain untouched.
+- If the file is missing, it is created with just the generated data and other Firebase defaults.
+
+Because this file is regenerated on every build, it is safer to keep the version committed to source control as small as possible. Track only the entries you maintain by hand, ignore `.firebase/`, and avoid staging the adapter-generated changes unless you are pinning a deliberate override.
+
+## Firebase functions
+
+The adaptor packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions` (relative to the project root). Each Gatsby function is built into a single Firebase function. If you opted for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
+
+- A default function for SSR function handler.
+- A cached [DSG variant](#dsg-functions) for pages marked with `defer: true`.
+
+The default runtime is `nodejs20`; override it with the [`functionsRuntime`](#adapter-options) option. The directory is re-created on each build, so do not commit it.
+
+## Adapter options
+
+Pass options to the adapter factory in `gatsby-config`:
+
+```js
+adapter: firebaseAdapter({
+  hostingTarget: 'gatsby',
+  functionsOutDir: '.firebase/functions',
+  functionsCodebase: 'gatsby',
+  functionsRuntime: 'nodejs20',
+  functionsConfig: { region: 'us-central1' },
+  functionsConfigOverride: { 'ssr-engine': { memory: '512MiB' } },
+  excludeDatastoreFromEngineFunction: false,
+})
+```
+
+- `hostingTarget`: The Firebase Hosting target in `firebase.json` to replace. Match this with `firebase target:apply hosting <target> <site>`.
+- `functionsOutDir`: Directory for the generated Firebase Functions workspace.
+- `functionsCodebase`: The `codebase` name placed in `firebase.json`. A matching CLI target is required for deployment.
+- `functionsRuntime`: Runtime string passed to Firebase (for example `nodejs20`).
+- `functionsConfig`: Default HTTPS options applied to every generated function.
+- `functionsConfigOverride`: Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant.
+- `excludeDatastoreFromEngineFunction`: When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles. Set `DEPLOY_URL` during the build so the functions can download the datastore on demand; otherwise the option is ignored.
+
+## DSG functions
+
+The adapter provides cached variants for Gatsby functions that opt into Deferred Static Generation. These behave similarly to Gatsby Cloud but rely on Firebase Storage.
+
+### Key characteristics
+
+- They accept only `GET` and `HEAD` requests.
+- They use the default Firebase Storage bucket to store caches under `.gatsby-adapter-firebase/<functionId>/<functionVersion>`.
+- If Storage is unreachable for any reason, the request falls back to the uncached handler and returns `X-Gatsby-Firebase-Cache: PASS`.
+- They use the request’s URL path to determine whether to create a new cache object or reuse an existing one.
+- On a miss, the underlying Gatsby handler runs. The proxy records outgoing chunks for `GET` requests only.
+- When the response finishes with status `2xx`, `301`, `302`, `307`, `308`, or `404`, the payload and headers are written to Storage.
+- Cached requests return `X-Gatsby-Firebase-Cache: HIT`. All other statuses skip caching and return `MISS`.
+
+The handler always sets `cache-control` unless the function already provided one:
+
+- Cacheable responses get `public, max-age=0, must-revalidate`.
+- Non-cacheable responses get `no-store`.
+- Unsupported methods respond with `405 Method Not Allowed` and `cache-control: no-store`.
+
+Cache keys are per function version and URL path, so changing the Gatsby function code automatically invalidates the cache on the next deployment.
 
 ## License
 

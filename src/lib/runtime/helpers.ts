@@ -1,33 +1,35 @@
 import { onRequest, HttpsFunction } from 'firebase-functions/v2/https'
 import { createCachedHandler } from './cached-handler.js'
-import type { FunctionModule, FunctionHandler, FunctionConfig } from './types.js'
+import type { FunctionModule, FunctionHandler, FunctionConfig, FunctionMetadata } from './types.js'
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  Object.prototype.toString.call(value) === '[object Object]'
-
-const mergeHandlerOptions = <T extends FunctionConfig | undefined>(
-  ...sources: Array<T | undefined>
-): T | undefined => {
-  const filtered = sources.filter((candidate): candidate is T => isPlainObject(candidate))
-  if (filtered.length === 0) return undefined
-  return Object.assign({}, ...filtered)
+const resolveHandlerConfig = <T extends FunctionConfig | undefined>(
+  meta: FunctionMetadata,
+  ...configs: Array<T | undefined>
+): T => {
+  const config = Object.assign({}, ...configs) as T
+  const metaPrefixed = Object.fromEntries(Object.entries(meta).map(([k, v]) => [`gatsby-${k}`, v]))
+  config.labels = { ...config.labels, ...metaPrefixed }
+  return config
 }
 
-const resolveFunctionExports = (module: FunctionModule, id: string) => {
+const resolveFunctionExports = (module: FunctionModule, meta: FunctionMetadata) => {
   let handler: FunctionHandler
   let config: FunctionConfig | undefined
+
   if ('default' in module) {
     // export default () => {}
-    // export const options = {...}
+    // export const config = { firebase: {...} }
     handler = module.default
-    config = module.config
+    config = module.config?.firebase
   } else {
     // module.exports = () => {}
     handler = module
   }
 
   if (typeof handler !== 'function') {
-    throw new Error(`[gatsby-adapter-firebase] Expected function export for ${id} to be callable`)
+    throw new Error(
+      `[gatsby-adapter-firebase] Expected function export for ${meta.id} to be callable`,
+    )
   }
 
   return [handler, config] as const
@@ -35,27 +37,21 @@ const resolveFunctionExports = (module: FunctionModule, id: string) => {
 
 export const createHttpsFunction = (
   module: FunctionModule,
-  id: string,
+  meta: FunctionMetadata,
   baseConfig?: FunctionConfig,
 ): HttpsFunction => {
-  const [handler, configExport] = resolveFunctionExports(module, id)
-  const config = mergeHandlerOptions(baseConfig, configExport)
-  if (config) {
-    return onRequest(config, handler)
-  }
-  return onRequest(handler)
+  const [handler, configExport] = resolveFunctionExports(module, meta)
+  const config = resolveHandlerConfig(meta, baseConfig, configExport)
+  return onRequest(config, handler)
 }
 
 export const createCachedHttpsFunction = (
   module: FunctionModule,
-  id: string,
+  meta: FunctionMetadata,
   baseConfig?: FunctionConfig,
 ): HttpsFunction => {
-  const [handler, configExport] = resolveFunctionExports(module, id)
-  const cachedHandler = createCachedHandler(handler, id)
-  const options = mergeHandlerOptions(baseConfig, configExport)
-  if (options) {
-    return onRequest(options, cachedHandler)
-  }
-  return onRequest(cachedHandler)
+  const [handler, configExport] = resolveFunctionExports(module, meta)
+  const config = resolveHandlerConfig(meta, baseConfig, configExport)
+  const cachedHandler = createCachedHandler(handler, meta)
+  return onRequest(config, cachedHandler)
 }

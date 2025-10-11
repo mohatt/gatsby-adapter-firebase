@@ -3,7 +3,7 @@ import _ from 'lodash'
 import express from 'express'
 import request from 'supertest'
 import { createCachedHandler } from '../src/lib/runtime/cached-handler.js'
-import type { FunctionHandler } from '../src/lib/runtime.js'
+import type { FunctionHandler } from '../src/lib/runtime/types.js'
 
 const cache = new Map<string, { file: Buffer; metadata: object }>()
 
@@ -37,7 +37,7 @@ vi.mock('firebase-admin/storage', () => ({
 
 const createTestApp = (id: string, handler: FunctionHandler) => {
   const mockHandler = vi.fn(handler)
-  const cachedHandler = createCachedHandler(mockHandler, id)
+  const cachedHandler = createCachedHandler(mockHandler, { id, version: 'test-version' })
   const server = express().disable('x-powered-by')
   server.all('*', (req, res) => {
     Promise.resolve(cachedHandler(req as any, res)).catch((error) => {

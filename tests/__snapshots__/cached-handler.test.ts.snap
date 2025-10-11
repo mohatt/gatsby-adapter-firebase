@@ -2,7 +2,7 @@
 
 exports[`createCachedHandler() > caches 404 responses > cache 1`] = `
 Map {
-  "gatsby-adapter-firebase/not-found/L21pc3Npbmc.bin" => {
+  ".gatsby-adapter-firebase/not-found/test-version/L21pc3Npbmc.bin" => {
     "file": {
       "body": "missing",
       "header": {
@@ -131,7 +131,7 @@ exports[`createCachedHandler() > handles write errors correctly > response[repea
 
 exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > cache 1`] = `
 Map {
-  "gatsby-adapter-firebase/head/L2hlYWQ.bin" => {
+  ".gatsby-adapter-firebase/head/test-version/L2hlYWQ.bin" => {
     "file": {
       "body": "payload",
       "header": {
@@ -192,7 +192,7 @@ exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > res
 
 exports[`createCachedHandler() > serves streaming responses correctly > cache 1`] = `
 Map {
-  "gatsby-adapter-firebase/function-id/L2hlbGxv.bin" => {
+  ".gatsby-adapter-firebase/function-id/test-version/L2hlbGxv.bin" => {
     "file": {
       "body": "hello, world",
       "header": {

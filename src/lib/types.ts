@@ -1,4 +1,4 @@
-import type { FunctionConfig } from './runtime/types.js'
+import type { FunctionConfig, FunctionMetadata } from './runtime/types.js'
 
 export interface HeaderKV {
   key: string
@@ -60,20 +60,17 @@ export type FunctionVariant = keyof FunctionVariants
 export interface FunctionEntry {
   id: string
   deployId: string
-  entryFile: string
   variant: FunctionVariant
-  config?: FunctionConfig
+  entryPath: string
+  modulePath: string
+  files: string[]
+  config: FunctionConfig
+  meta: FunctionMetadata
 }
 
 export interface FunctionVariants {
   default: FunctionEntry
   cached?: FunctionEntry
-}
-
-export interface FunctionsWorkspace {
-  dir: string
-  files: string[]
-  exports: FunctionEntry[]
 }
 
 export type FunctionsRuntime = typeof import('./runtime.js')
