@@ -19,7 +19,7 @@ import {
   isPathWithin,
   relativeToPosix,
   resolveDistPath,
-  readPackageJson,
+  readGatsbyPackageJson,
 } from './utils.js'
 
 export interface BuildFunctionsOptions {
@@ -315,6 +315,7 @@ export const buildFunctions = async (
     type: 'commonjs',
     ...(nodeEngine ? { engines: { node: nodeEngine } } : {}),
     dependencies: {
+      'gatsby': `${readGatsbyPackageJson().version}`,
       'firebase-admin': '^13.0.0',
       'firebase-functions': '^6.0.0',
     },

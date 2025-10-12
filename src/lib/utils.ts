@@ -36,6 +36,11 @@ export const readPackageJson = (): PackageJson => {
   return packageJson
 }
 
+export const readGatsbyPackageJson = (): PackageJson => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('gatsby/package.json')
+}
+
 let pLimitPromise: Promise<(typeof import('p-limit'))['default']> | undefined
 
 // why? for compatibility with CJS build, since p-limit is pure ESM
