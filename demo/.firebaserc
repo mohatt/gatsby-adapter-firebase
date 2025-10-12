@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "gatsby-firebase-87451"
+  },
+  "targets": {
+    "gatsby-firebase-87451": {
+      "hosting": {
+        "gatsby": [
+          "gatsby-firebase-87451"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
