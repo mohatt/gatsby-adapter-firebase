@@ -134,7 +134,7 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
         source,
         function: {
           functionId: deployId,
-          pinTag: true,
+          // pinTag: true,
           ...(region ? { region } : {}),
         },
       }
