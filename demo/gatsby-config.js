@@ -1,7 +1,7 @@
-//const adapter = require("../dist/index.cjs")
+const adapter = require("../dist/index.cjs")
 
 module.exports = {
-  //adapter: adapter(),
+  adapter: adapter(),
   plugins: [
     {
       resolve: `gatsby-source-filesystem`,
@@ -45,5 +45,9 @@ module.exports = {
         },
       ],
     },
-  ]
+  ],
+  siteMetadata: {
+    title: `Gatsby Demo`,
+    description: `Gatsby Demo Description`,
+  }
 }
