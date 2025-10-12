@@ -27,7 +27,7 @@ jobs:
 
       - name: Build adaptor
         run: pnpm install
-        working-directory: ../
+        working-directory: ./
 
       - name: Install dependencies
         run: npm install
