@@ -201,8 +201,7 @@ export const buildFunctions = async (
       meta: {
         id,
         name: name === 'SSR & DSG' ? (kind == 'cached' ? 'DSG' : 'SSR') : name,
-        // adaptor version should not affect generated hash, we'll rewrite it later
-        generator: 'gatsby-adapter-firebase@0',
+        generator: 'gatsby-adapter-firebase',
         // placeholder till we generate function version hash
         version: 'build',
       },
@@ -329,7 +328,6 @@ export const buildFunctions = async (
     throw new AdaptorError(`Failed to write functions package.json file ${pkgFile}`, error)
   }
 
-  const generator = `gatsby-adapter-firebase@${readPackageJson().version ?? 'unknown'}`
   await Promise.all(
     workspace.deployments.map(async (entry) => {
       // ensure files are ordered deterministically
@@ -349,7 +347,6 @@ export const buildFunctions = async (
         combined.update('\0')
       }
       entry.meta.version = combined.digest('hex')
-      entry.meta.generator = generator
       await writeDeploymentModuleFile(entry)
     }),
   )
@@ -361,6 +358,7 @@ export const buildFunctions = async (
       codebase: functionsCodebase,
       source: relativeToPosix(projectRoot, outDir) || '.',
       runtime: functionsRuntime,
+      ignore: ['node_modules', '.git', 'firebase-debug.log', 'firebase-debug.*.log', '*.local'],
     },
   }
 }

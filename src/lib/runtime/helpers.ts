@@ -7,8 +7,10 @@ const resolveHandlerConfig = <T extends FunctionConfig | undefined>(
   ...configs: Array<T | undefined>
 ): T => {
   const config = Object.assign({}, ...configs) as T
-  const metaPrefixed = Object.fromEntries(Object.entries(meta).map(([k, v]) => [`gatsby-${k}`, v]))
-  config.labels = { ...config.labels, ...metaPrefixed }
+  config.labels = {
+    ...config.labels,
+    generator: meta.generator,
+  }
   return config
 }
 
