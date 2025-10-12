@@ -38,7 +38,7 @@ jobs:
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
-          args: deploy
+          args: deploy --force
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GATSBY_FIREBASE_87451 }}
           PROJECT_ID: gatsby-firebase-87451
