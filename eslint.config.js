@@ -2,6 +2,9 @@ import eslint from '@eslint/js'
 import tsEslint from 'typescript-eslint'
 
 export default tsEslint.config(
+  {
+    ignores: ['**/__fixtures__/**', '**/__snapshots__/**'],
+  },
   eslint.configs.recommended,
   ...tsEslint.configs.recommended,
   ...tsEslint.configs.stylistic,

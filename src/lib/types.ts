@@ -55,12 +55,12 @@ export interface FirebaseJson {
   [k: string]: unknown
 }
 
-export type FunctionVariant = keyof FunctionVariants
+export type FunctionDeploymentKind = keyof FunctionDeploymentSet
 
-export interface FunctionEntry {
+export interface FunctionDeployment {
   id: string
   deployId: string
-  variant: FunctionVariant
+  kind: FunctionDeploymentKind
   entryPath: string
   modulePath: string
   files: string[]
@@ -68,9 +68,9 @@ export interface FunctionEntry {
   meta: FunctionMetadata
 }
 
-export interface FunctionVariants {
-  default: FunctionEntry
-  cached?: FunctionEntry
+export interface FunctionDeploymentSet {
+  default: FunctionDeployment
+  cached?: FunctionDeployment
 }
 
 export type FunctionsRuntime = typeof import('./runtime.js')

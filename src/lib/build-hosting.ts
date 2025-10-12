@@ -5,8 +5,8 @@ import {
   FirebaseHostingRedirect,
   FirebaseHostingRewrite,
   FirebaseHostingFunctionRewrite,
-  FunctionVariants,
   FirebaseHostingJson,
+  FunctionDeployment,
 } from './types.js'
 import type { FunctionConfig } from './runtime/types.js'
 import type { AdaptorReporter } from './reporter.js'
@@ -20,7 +20,13 @@ export interface BuildHostingArgs {
   pathPrefix: string
   options: BuildHostingOptions
   reporter: AdaptorReporter
-  functionsMap?: ReadonlyMap<string, FunctionVariants>
+  functionsMap?: ReadonlyMap<
+    string,
+    {
+      default: Pick<FunctionDeployment, 'deployId' | 'config'>
+      cached?: Pick<FunctionDeployment, 'deployId' | 'config'>
+    }
+  >
 }
 
 export interface BuildHostingResult {
@@ -77,8 +83,8 @@ const normalizeDestination = (value: string, pathPrefix: string) => {
 }
 
 const extractRegion = (config?: FunctionConfig): string | null => {
-  if (!config) return null
   const region = config?.region
+  if (!region) return null
   if (typeof region === 'string') return region
   if (Array.isArray(region)) return region[0]
   if (region && 'value' in region && typeof region.value === 'function') return region.value()

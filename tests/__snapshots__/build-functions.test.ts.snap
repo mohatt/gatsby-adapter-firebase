@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildFunctions() > builds test-project correctly > firebase.json 1`] = `
+{
+  "codebase": "test-hosting",
+  "runtime": "node20",
+  "source": ".firebase/test",
+}
+`;

@@ -4,6 +4,7 @@
     "module": "nodenext",
     "moduleResolution": "node16",
     "lib": ["es2023"],
+    "types": ["node", "vitest/globals"],
     "esModuleInterop": true,
     "isolatedModules": true,
     "strict": false,
@@ -12,5 +13,5 @@
     "noUnusedParameters": true,
     "noEmit": true
   },
-  "include": ["src", "*.ts"]
+  "include": ["src", "test", "tests", "*.ts"]
 }

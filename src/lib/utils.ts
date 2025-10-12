@@ -1,9 +1,8 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
-import type { PackageJson } from './types.js'
-import crypto from 'node:crypto'
 import fs from 'node:fs'
+import path from 'node:path'
+import crypto from 'node:crypto'
+import { fileURLToPath } from 'node:url'
+import type { PackageJson } from './types.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -27,9 +26,14 @@ export const resolveDistPath = (distPath: string) => {
   return path.join(__dirname, distPath)
 }
 
+let packageJson: PackageJson | undefined
+
 export const readPackageJson = (): PackageJson => {
-  const require = createRequire(__filename)
-  return require('../package.json')
+  if (!packageJson) {
+    const json = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')
+    packageJson = JSON.parse(json) as PackageJson
+  }
+  return packageJson
 }
 
 let pLimitPromise: Promise<(typeof import('p-limit'))['default']> | undefined

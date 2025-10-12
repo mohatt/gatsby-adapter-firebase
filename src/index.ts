@@ -42,13 +42,13 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
           const infoParts = [
             `codebase=${result.config.codebase}`,
             `files=${workspace.files.size}`,
-            `functions=${workspace.exports.length} (use --verbose for breakdown)`,
+            `functions=${workspace.deployments.length} (use --verbose for breakdown)`,
           ]
           setStatus(infoParts.join(', '))
 
           reporter.verbose(
             `Functions codebase: ${config.codebase} → ${workspace.dir}`,
-            workspace.exports.map(
+            workspace.deployments.map(
               (fn) => `${path.relative(workspace.dir, fn.entryPath)} → ${fn.deployId}`,
             ),
           )

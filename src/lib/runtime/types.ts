@@ -8,6 +8,7 @@ export type Response = Parameters<FunctionHandler>[1]
 export type GatsbyFirebaseFunctionRequest = Request & GatsbyFunctionRequest
 export type GatsbyFirebaseFunctionResponse = Response & GatsbyFunctionResponse
 
+export type FunctionConfig = HttpsOptions
 export interface GatsbyFirebaseFunctionConfig extends GatsbyFunctionConfig {
   firebase?: FunctionConfig
 }
@@ -19,7 +20,6 @@ export interface FunctionMetadata {
   generator: string
 }
 
-export type FunctionConfig = HttpsOptions
 export type FunctionModule =
   | FunctionHandler
   | { default: FunctionHandler; config?: GatsbyFirebaseFunctionConfig }
