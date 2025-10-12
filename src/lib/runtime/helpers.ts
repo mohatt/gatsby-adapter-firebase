@@ -6,7 +6,7 @@ const resolveHandlerConfig = <T extends FunctionConfig | undefined>(
   meta: FunctionMetadata,
   ...configs: Array<T | undefined>
 ): T => {
-  const config = Object.assign({}, ...configs) as T
+  const config = Object.assign({ invoker: 'public' }, ...configs) as T
   config.labels = {
     ...config.labels,
     generator: meta.generator,
