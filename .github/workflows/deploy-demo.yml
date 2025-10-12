@@ -24,6 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Build adaptor
         run: pnpm install
@@ -35,11 +36,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy
+      - name: Authenticate Firebase CLI
+        run: |
+          echo "${FIREBASE_SERVICE_ACCOUNT}" > "${HOME}/gcp-key.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GATSBY_FIREBASE_87451 }}
-          PROJECT_ID: gatsby-firebase-87451
-          PROJECT_PATH: demo
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GATSBY_FIREBASE_87451 }}
+
+      - name: Deploy to Firebase
+        run: firebase --project gatsby-firebase-87451 deploy
