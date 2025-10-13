@@ -315,7 +315,7 @@ export const buildFunctions = async (
     type: 'commonjs',
     ...(nodeEngine ? { engines: { node: nodeEngine } } : {}),
     dependencies: {
-      'gatsby': `${readGatsbyPackageJson().version}`,
+      gatsby: `${readGatsbyPackageJson().version}`,
       'firebase-admin': '^13.0.0',
       'firebase-functions': '^6.0.0',
     },
@@ -323,11 +323,32 @@ export const buildFunctions = async (
 
   const pkgFile = path.join(outDir, 'package.json')
   try {
+    const projectPkgFile = path.join(projectRoot, 'package.json')
+    const projectPkgJson = JSON.parse(await fs.readFile(projectPkgFile, 'utf8'))
+    const packageJson = Object.fromEntries(
+      Object.entries(projectPkgJson)
+        .filter(([k]) => /^(name|version|\w*dependencies)$/.test(k))
+        .map(([k, v]) => [k, v]),
+    )
     await fs.writeFile(pkgFile, stableStringify(packageJson, null, 2), 'utf8')
-    await addWorkspaceFile(pkgFile, true)
+    await addWorkspaceFile(pkgFile)
   } catch (error) {
     throw new AdaptorError(`Failed to write functions package.json file ${pkgFile}`, error)
   }
+
+  const filesToCopy = ['package-lock.json', 'yarn.lock']
+  await Promise.all(
+    filesToCopy.map(async (file) => {
+      const fromPath = path.join(projectRoot, file)
+      const toPath = path.join(outDir, file)
+      try {
+        await fs.copyFile(fromPath, toPath)
+        await addWorkspaceFile(toPath)
+      } catch {
+        // ignore
+      }
+    }),
+  )
 
   await Promise.all(
     workspace.deployments.map(async (entry) => {
