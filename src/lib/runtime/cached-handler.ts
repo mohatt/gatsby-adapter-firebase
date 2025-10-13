@@ -271,7 +271,7 @@ export const createCachedHandler = (
       if (done) return
       done = true
       cleanup()
-      console.log('onClose()')
+
       if (res.errored || !queued || pendingWrites > 0 || !shouldBuffer) {
         // aborted, errored, incomplete or head request -> skip
         return
@@ -294,10 +294,9 @@ export const createCachedHandler = (
 
     const onFinish = () => {
       queued = true
-      console.log('onFinish()')
+
       // some providers might not emit 'close' and buffer the response
       if (pendingWrites === 0) {
-        console.log('onFinish() -> onClose()')
         onClose()
       }
     }
