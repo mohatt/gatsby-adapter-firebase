@@ -39,11 +39,17 @@ const EXCLUDED_CACHE_HEADER_NAMES = [
 let cachedBucket: Bucket | null | undefined
 
 // lazily resolve and memoize the default storage bucket; cache null if initialization fails
-const getBucket = () => {
+const getBucket = async () => {
   if (cachedBucket !== undefined) return cachedBucket
   try {
     const app = initializeApp()
     cachedBucket = getStorage(app).bucket() as unknown as Bucket
+    const [exists] = await cachedBucket.exists()
+    console.log({ exists })
+    if (!exists) {
+      const created = await cachedBucket.create()
+      console.log({ created })
+    }
   } catch (error) {
     cachedBucket = null
     console.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
@@ -165,7 +171,7 @@ export const createCachedHandler = (
     }
 
     const req = prepareRequest(originalReq, true)
-    const bucket = getBucket()
+    const bucket = await getBucket()
     if (!bucket) {
       res.set(CACHE_METADATA_HEADER, CACHE_PASS_VALUE)
       if (!res.hasHeader('cache-control')) {
