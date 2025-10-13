@@ -3,7 +3,6 @@ import fs from 'node:fs/promises'
 import stableStringify from 'safe-stable-stringify'
 import type { FirebaseJson, FirebaseFunctionsJson, FirebaseHostingJson } from './types.js'
 import { AdaptorError } from './reporter.js'
-import { toArray } from './utils.js'
 
 export interface BuildConfigArgs {
   hosting: FirebaseHostingJson
@@ -27,17 +26,47 @@ const DEFAULT_FUNCTIONS_IGNORE = [
   '*.local',
 ]
 
-const ensureArrayShape = <T>(value: T | T[] | undefined) => {
-  const arr = toArray(value)
-  return [arr, Array.isArray(value)] as [values: T[], wasArray: boolean]
+const ensureArrayShape = <T>(value: T | T[] | undefined): [values: T[], wasArray: boolean] => {
+  if (Array.isArray(value)) return [value, true]
+  return [value != null ? [value] : [], false]
 }
 
-const restoreShape = <T>(arr: T[], wasArray: boolean) => {
-  if (!arr.length) return undefined
-  if (arr.length === 1 && !wasArray) {
-    return arr[0]
+const restoreShape = <T>(list: T[], wasArray: boolean): T | T[] | undefined => {
+  if (!list.length) return undefined
+  if (list.length === 1 && !wasArray) {
+    return list[0]
   }
-  return arr
+  return list
+}
+
+/**
+ * Merges a config entry into a list by unique key.
+ * - Keeps sorted by the given key
+ * - Preserves original entry shape
+ */
+const mergeEntryByKey = <T>(
+  value: T | T[] | undefined,
+  nextEntry: T | undefined,
+  key: keyof T,
+  merge: (current: T | undefined, next: T) => T,
+): T | T[] | undefined => {
+  const [list, wasArray] = ensureArrayShape(value)
+  if (!nextEntry) return restoreShape(list, wasArray)
+
+  const nextKey = nextEntry[key]
+
+  // Single entry with no key → overwrite it
+  if (list.length === 1 && list[0][key] == null) {
+    return restoreShape([merge(list[0], nextEntry)], wasArray)
+  }
+
+  // Entries with a defined key → remove same-key entry if any, then merge/push new
+  const nextList = list.filter((e) => e[key] !== nextKey)
+  const currentEntry = list.find((e) => e[key] === nextKey)
+  nextList.push(merge(currentEntry, nextEntry))
+  nextList.sort((a, b) => String(a[key]).localeCompare(String(b[key])))
+
+  return restoreShape(nextList, wasArray)
 }
 
 const mergeHostingEntry = (
@@ -86,28 +115,26 @@ export const buildConfig = async (
     }
   }
 
-  const [hostingList, hostingWasArray] = ensureArrayShape(current.hosting)
-  const currHostingEntry = hostingList.find((e) => e.target === hosting.target)
-  const nextHostingList = hostingList.filter((e) => e.target !== hosting.target)
-  nextHostingList.push(mergeHostingEntry(currHostingEntry, hosting))
-  nextHostingList.sort((a, b) => a.target.localeCompare(b.target))
-
-  const [functionsList, functionsWasArray] = ensureArrayShape(current.functions)
-  const nextFunctionsList = functionsList.filter((e) => e.codebase !== functions?.codebase)
-  if (functions) {
-    const currFunctionsEntry = functionsList.find((e) => e.codebase === functions.codebase)
-    nextFunctionsList.push(mergeFunctionsEntry(currFunctionsEntry, functions))
-    nextFunctionsList.sort((a, b) => a.codebase.localeCompare(b.codebase))
-  }
-
   const config: FirebaseJson = {
     ...current,
-    hosting: restoreShape(nextHostingList, hostingWasArray),
-    functions: restoreShape(nextFunctionsList, functionsWasArray),
+    hosting: mergeEntryByKey<FirebaseHostingJson>(
+      current.hosting,
+      hosting,
+      'target',
+      mergeHostingEntry,
+    ),
   }
 
-  if (!functions && nextFunctionsList.length === 0) {
-    delete config.functions
+  if (functions) {
+    const mergedFunctions = mergeEntryByKey<FirebaseFunctionsJson>(
+      current.functions,
+      functions,
+      'codebase',
+      mergeFunctionsEntry,
+    )
+    if (mergedFunctions) {
+      config.functions = mergedFunctions
+    }
   }
 
   const configJSON = `${stableStringify(config, null, 2)}\n`

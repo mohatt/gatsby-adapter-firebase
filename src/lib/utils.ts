@@ -7,9 +7,6 @@ import type { PackageJson } from './types.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-export const toArray = <T>(value: T | T[] | undefined): T[] =>
-  Array.isArray(value) ? value : value != null ? [value] : []
-
 export const toPosix = (value: string) => value.split(path.sep).join('/')
 
 export const relativeToPosix = (from: string, to: string) => toPosix(path.relative(from, to))
