@@ -6,6 +6,8 @@ let app: App | undefined
 
 export const getDefaultFirebaseApp = () => {
   if (app) return app
+  // if a function initialized the app with custom options, initializeApp() will throw
+  // we need to try get the initialized app first or initialize a new one
   try {
     app = getApp()
   } catch {

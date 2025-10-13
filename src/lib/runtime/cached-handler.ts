@@ -1,3 +1,4 @@
+import { logger } from 'firebase-functions/v2'
 import { getStorage } from 'firebase-admin/storage'
 import type { Bucket, File } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
@@ -49,7 +50,7 @@ const getBucket = async (): Promise<Bucket | undefined> => {
     }
     cachedBucket = bucket as unknown as Bucket
   } catch (error) {
-    console.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
+    logger.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
   }
   return cachedBucket
 }
@@ -115,7 +116,7 @@ const readCachedResponse = async (file: File): Promise<CachedResponse | null> =>
     const body = downloaded.subarray(newlineIndex + 1)
     return { metadata, body }
   } catch (error) {
-    console.error(
+    logger.error(
       `[gatsby-adapter-firebase] Failed to read cached response for ${file.name}:`,
       error,
     )
@@ -136,7 +137,7 @@ const writeCachedResponse = async (file: File, metadata: CachedResponseMetadata,
       },
     })
   } catch (error) {
-    console.error(
+    logger.error(
       `[gatsby-adapter-firebase] Failed to write cached response for ${file.name}:`,
       error,
     )

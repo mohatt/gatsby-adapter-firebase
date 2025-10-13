@@ -22,7 +22,7 @@ const resolveFunctionExports = (
   }
 
   if (typeof gatsbyHandler !== 'function') {
-    throw new Error(
+    throw new TypeError(
       `[gatsby-adapter-firebase] Expected function export for ${meta.id} to be callable`,
     )
   }
