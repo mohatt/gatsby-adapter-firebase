@@ -3,6 +3,7 @@ import { getStorage } from 'firebase-admin/storage'
 import type { Bucket, File } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, FunctionMetadata, Request, Response } from './types.js'
+import { prepareRequest } from './prepare-request.js'
 
 export interface CachedResponseMetadata {
   status: number
@@ -48,32 +49,6 @@ const getBucket = () => {
     console.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
   }
   return cachedBucket
-}
-
-// normalize the request path so equivalent URLs land on the same cache entry
-const normalizePath = (value: string | undefined) => {
-  if (!value || value === '/') return '/'
-  // strip query and hash
-  const index = value.search(/[?#]/)
-  const normalized = index === -1 ? value : value.slice(0, index)
-  // ensure one leading slash
-  return normalized.startsWith('/') ? normalized : `/${normalized}`
-}
-
-const prepareRequest = (originalReq: Request) => {
-  const req = Object.create(originalReq) as Request
-
-  const assignIfString = (key: string) => {
-    if (typeof req[key] === 'string') {
-      req[key] = normalizePath(req[key])
-    }
-  }
-
-  assignIfString('url')
-  assignIfString('originalUrl')
-  req.query = Object.create(null)
-  void req.path // trigger getter for reparse
-  return req
 }
 
 // convert any express chunk shape into a Buffer so we can concatenate responses safely
@@ -189,7 +164,7 @@ export const createCachedHandler = (
       return
     }
 
-    const req = prepareRequest(originalReq)
+    const req = prepareRequest(originalReq, true)
     const bucket = getBucket()
     if (!bucket) {
       res.set(CACHE_METADATA_HEADER, CACHE_PASS_VALUE)

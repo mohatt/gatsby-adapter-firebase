@@ -3,7 +3,7 @@ import tsEslint from 'typescript-eslint'
 
 export default tsEslint.config(
   {
-    ignores: ['**/__fixtures__/**', '**/__snapshots__/**'],
+    ignores: ['**/__fixtures__/**', '**/__snapshots__/**', 'demo/**'],
   },
   eslint.configs.recommended,
   ...tsEslint.configs.recommended,
