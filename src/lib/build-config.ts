@@ -15,7 +15,17 @@ export interface BuildConfigResult {
   config: FirebaseJson
 }
 
-const DEFAULT_IGNORE = ['**/.*', '**/node_modules/**', 'firebase.json']
+// Firebase default hosting ignore
+const DEFAULT_HOSTING_IGNORE = ['**/.*', '**/node_modules/**', 'firebase.json']
+
+// Firebase default functions ignore
+const DEFAULT_FUNCTIONS_IGNORE = [
+  'node_modules',
+  '.git',
+  'firebase-debug.log',
+  'firebase-debug.*.log',
+  '*.local',
+]
 
 const ensureArrayShape = <T>(value: T | T[] | undefined) => {
   const arr = toArray(value)
@@ -36,7 +46,7 @@ const mergeHostingEntry = (
 ): FirebaseHostingJson => {
   const merged: FirebaseHostingJson = { ...current, ...received }
   if (!merged.ignore) {
-    merged.ignore = [...DEFAULT_IGNORE]
+    merged.ignore = [...DEFAULT_HOSTING_IGNORE]
   }
   return merged
 }
@@ -45,7 +55,11 @@ const mergeFunctionsEntry = (
   current: FirebaseFunctionsJson | undefined,
   received: FirebaseFunctionsJson,
 ): FirebaseFunctionsJson => {
-  return { ...current, ...received }
+  const merged: FirebaseFunctionsJson = { ...current, ...received }
+  if (!merged.ignore) {
+    merged.ignore = [...DEFAULT_FUNCTIONS_IGNORE]
+  }
+  return merged
 }
 
 export const buildConfig = async (

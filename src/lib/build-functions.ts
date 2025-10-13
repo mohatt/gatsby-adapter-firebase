@@ -19,7 +19,6 @@ import {
   isPathWithin,
   relativeToPosix,
   resolveDistPath,
-  readGatsbyPackageJson,
 } from './utils.js'
 
 export interface BuildFunctionsOptions {
@@ -94,14 +93,6 @@ const generateFunctionName = (id: string, used: Set<string>) => {
 const ensureRelativeRequire = (value: string) => {
   if (value.startsWith('../') || value.startsWith('./')) return value
   return `./${value}`
-}
-
-const runtimeToEngineConstraint = (runtime: string) => {
-  const match = /^nodejs(\d+)/.exec(runtime)
-  if (!match) return undefined
-  const major = Number(match[1])
-  if (!Number.isInteger(major)) return undefined
-  return `>=${major}`
 }
 
 export const buildFunctions = async (
@@ -310,17 +301,6 @@ export const buildFunctions = async (
     throw new AdaptorError(`Failed to write functions index file ${indexFile}`, error)
   }
 
-  const nodeEngine = runtimeToEngineConstraint(functionsRuntime)
-  const packageJson = {
-    type: 'commonjs',
-    ...(nodeEngine ? { engines: { node: nodeEngine } } : {}),
-    dependencies: {
-      gatsby: `${readGatsbyPackageJson().version}`,
-      'firebase-admin': '^13.0.0',
-      'firebase-functions': '^6.0.0',
-    },
-  }
-
   const pkgFile = path.join(outDir, 'package.json')
   try {
     const projectPkgFile = path.join(projectRoot, 'package.json')
@@ -336,11 +316,11 @@ export const buildFunctions = async (
     throw new AdaptorError(`Failed to write functions package.json file ${pkgFile}`, error)
   }
 
-  const filesToCopy = ['package-lock.json', 'yarn.lock']
+  const pkgLockFiles = ['package-lock.json', 'yarn.lock']
   await Promise.all(
-    filesToCopy.map(async (file) => {
-      const fromPath = path.join(projectRoot, file)
-      const toPath = path.join(outDir, file)
+    pkgLockFiles.map(async (from) => {
+      const fromPath = path.join(projectRoot, from)
+      const toPath = path.join(outDir, from)
       try {
         await fs.copyFile(fromPath, toPath)
         await addWorkspaceFile(toPath)
@@ -380,7 +360,6 @@ export const buildFunctions = async (
       codebase: functionsCodebase,
       source: relativeToPosix(projectRoot, outDir) || '.',
       runtime: functionsRuntime,
-      ignore: ['node_modules', '.git', 'firebase-debug.log', 'firebase-debug.*.log', '*.local'],
     },
   }
 }

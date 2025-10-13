@@ -47,8 +47,7 @@ export const createHttpsFunction = (
   baseConfig?: FunctionConfig,
 ): HttpsFunction => {
   const [handler, config] = resolveFunctionExports(module, meta, baseConfig)
-  const defaultHandler = createDefaultHandler(handler, meta)
-  return onRequest(config, defaultHandler)
+  return onRequest(config, createDefaultHandler(handler, meta))
 }
 
 export const createCachedHttpsFunction = (
@@ -57,6 +56,5 @@ export const createCachedHttpsFunction = (
   baseConfig?: FunctionConfig,
 ): HttpsFunction => {
   const [handler, config] = resolveFunctionExports(module, meta, baseConfig)
-  const cachedHandler = createCachedHandler(handler, meta)
-  return onRequest(config, cachedHandler)
+  return onRequest(config, createCachedHandler(handler, meta))
 }
