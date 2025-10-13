@@ -46,6 +46,7 @@ export interface FirebaseFunctionsJson {
   codebase: string
   source: string
   runtime?: string
+  ignore?: string[]
   [k: string]: unknown
 }
 

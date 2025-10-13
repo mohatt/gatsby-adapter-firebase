@@ -40,14 +40,14 @@ const createAdapter: AdapterInit<AdapterOptions> = (userOptions) => {
 
           const { workspace, config } = result
           const infoParts = [
-            `codebase=${result.config.codebase}`,
+            `codebase=${config.codebase}`,
             `files=${workspace.files.size}`,
             `functions=${workspace.deployments.length} (use --verbose for breakdown)`,
           ]
           setStatus(infoParts.join(', '))
 
-          reporter.verbose(
-            `Functions codebase: ${config.codebase} → ${workspace.dir}`,
+          reporter.info(
+            `Bundled functions → ${path.relative(projectRoot, workspace.dir)}`,
             workspace.deployments.map(
               (fn) => `${path.relative(workspace.dir, fn.entryPath)} → ${fn.deployId}`,
             ),

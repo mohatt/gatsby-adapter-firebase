@@ -46,45 +46,40 @@ const restoreShape = <T>(list: T[], wasArray: boolean): T | T[] | undefined => {
  */
 const mergeEntryByKey = <T>(
   value: T | T[] | undefined,
-  nextEntry: T | undefined,
+  newEntry: T | undefined,
   key: keyof T,
   merge: (current: T | undefined, next: T) => T,
 ): T | T[] | undefined => {
   const [list, wasArray] = ensureArrayShape(value)
-  if (!nextEntry) return restoreShape(list, wasArray)
+  if (!newEntry) return restoreShape(list, wasArray)
 
-  const nextKey = nextEntry[key]
+  const newKey = newEntry[key]
 
-  // Single entry with no key → overwrite it
+  // Single entry with no key → overwrite it. if we preserve it,
+  // we'll end up with an array entry with no key which is not valid firebase config
   if (list.length === 1 && list[0][key] == null) {
-    return restoreShape([merge(list[0], nextEntry)], wasArray)
+    return restoreShape([merge(list[0], newEntry)], wasArray)
   }
 
   // Entries with a defined key → remove same-key entry if any, then merge/push new
-  const nextList = list.filter((e) => e[key] !== nextKey)
-  const currentEntry = list.find((e) => e[key] === nextKey)
-  nextList.push(merge(currentEntry, nextEntry))
+  const nextList = list.filter((e) => e[key] !== newKey)
+  const currentEntry = list.find((e) => e[key] === newKey)
+  nextList.push(merge(currentEntry, newEntry))
   nextList.sort((a, b) => String(a[key]).localeCompare(String(b[key])))
 
   return restoreShape(nextList, wasArray)
 }
 
-const mergeHostingEntry = (
-  current: FirebaseHostingJson | undefined,
-  received: FirebaseHostingJson,
-): FirebaseHostingJson => {
-  const merged: FirebaseHostingJson = { ...current, ...received }
+const mergeHostingEntry = <T extends FirebaseHostingJson>(current: T, received: T): T => {
+  const merged: T = { ...current, ...received }
   if (!merged.ignore) {
     merged.ignore = [...DEFAULT_HOSTING_IGNORE]
   }
   return merged
 }
 
-const mergeFunctionsEntry = (
-  current: FirebaseFunctionsJson | undefined,
-  received: FirebaseFunctionsJson,
-): FirebaseFunctionsJson => {
-  const merged: FirebaseFunctionsJson = { ...current, ...received }
+const mergeFunctionsEntry = <T extends FirebaseFunctionsJson>(current: T, received: T): T => {
+  const merged: T = { ...current, ...received }
   if (!merged.ignore) {
     merged.ignore = [...DEFAULT_FUNCTIONS_IGNORE]
   }
