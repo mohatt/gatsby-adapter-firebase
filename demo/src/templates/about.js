@@ -7,7 +7,11 @@ const AboutTemplate = ({ data: { page, avatar } }) => (
   <Layout title={page.title}>
     <div className='row'>
       <div className='col-md-3'>
-        <GatsbyImage image={avatar.childImageSharp.image} alt='Avatar Image' className='about-avatar' />
+        <GatsbyImage
+          image={avatar.childImageSharp.image}
+          alt='Avatar Image'
+          className='about-avatar'
+        />
       </div>
       <div className='col-md-9'>
         <div>
@@ -33,8 +37,8 @@ const AboutTemplate = ({ data: { page, avatar } }) => (
 export const Head = () => (
   <>
     <title>About Us</title>
-    <meta name="robots" content="all" />
-    <link as="font" href="/static/test-font.woff2" rel="preload" />
+    <meta name='robots' content='all' />
+    <link as='font' href='/static/test-font.woff2' rel='preload' />
   </>
 )
 

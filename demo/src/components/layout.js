@@ -14,7 +14,7 @@ const Layout = ({ title, children }) => (
   <div className='container'>
     <header className='py-3'>
       <nav className='navbar navbar-expand navbar-dark bg-dark rounded'>
-        <Link id="avatar" className='navbar-brand' to='home' />
+        <Link id='avatar' className='navbar-brand' to='home' />
         <ul className='navbar-nav'>
           {menu.map((link) => (
             <li key={link.title} className='nav-item'>

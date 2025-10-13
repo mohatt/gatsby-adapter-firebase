@@ -1,3 +1,3 @@
 export default function handler(req, res) {
-  res.status(200).json({ data: ['hello', `world`] });
+  res.status(200).json({ data: ['hello', `world`] })
 }

@@ -6,12 +6,12 @@ import avatarAlt from '../images/avatar-smile.png'
 const HomeTemplate = ({ data }) => (
   <Layout title={data.page.title}>
     <div>
-      <meta name="robots" content="all" />
+      <meta name='robots' content='all' />
       This is a simple blog site built with <a href='https://www.gatsbyjs.org'>Gatsby</a> and{' '}
       <a href='https://github.com/mohatt/gatsby-plugin-advanced-pages'>Gatsby Advanced Pages</a>{' '}
       plugin.
     </div>
-    <Script id="home-script">
+    <Script id='home-script'>
       {`
       (function (){
         let currDate = new Date();
@@ -27,9 +27,9 @@ const HomeTemplate = ({ data }) => (
 export const Head = () => (
   <>
     <title>HomePage</title>
-    <meta name="robots" content="noindex" />
-    <link rel="prefetch" as="image" href={avatarAlt} />
-    <Script id="home-head-script">
+    <meta name='robots' content='noindex' />
+    <link rel='prefetch' as='image' href={avatarAlt} />
+    <Script id='home-head-script'>
       {`
       (function (){
         let currDate = new Date();
