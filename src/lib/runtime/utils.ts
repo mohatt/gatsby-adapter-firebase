@@ -1,5 +1,18 @@
+import { App, getApp, initializeApp } from 'firebase-admin/app'
 import { parse as parseCookies } from 'cookie'
 import type { Request } from './types.js'
+
+let app: App | undefined
+
+export const getDefaultFirebaseApp = () => {
+  if (app) return app
+  try {
+    app = getApp()
+  } catch {
+    app = initializeApp()
+  }
+  return app
+}
 
 const normalizePath = (value: string | undefined) => {
   if (!value || value === '/') return '/'

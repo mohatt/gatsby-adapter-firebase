@@ -1,5 +1,5 @@
 import type { FunctionHandler, FunctionMetadata } from './types.js'
-import { prepareRequest } from './prepare-request.js'
+import { prepareRequest } from './utils.js'
 
 export const createDefaultHandler = (
   handler: FunctionHandler,

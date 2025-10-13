@@ -1,9 +1,8 @@
-import { initializeApp } from 'firebase-admin/app'
 import { getStorage } from 'firebase-admin/storage'
 import type { Bucket, File } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, FunctionMetadata, Request, Response } from './types.js'
-import { prepareRequest } from './prepare-request.js'
+import { getDefaultFirebaseApp, prepareRequest } from './utils.js'
 
 export interface CachedResponseMetadata {
   status: number
@@ -36,22 +35,20 @@ const EXCLUDED_CACHE_HEADER_NAMES = [
   'x-gatsby-firebase-cache', // internal metadata
 ]
 
-let cachedBucket: Bucket | null | undefined
+let cachedBucket: Bucket | undefined
 
 // lazily resolve and memoize the default storage bucket; cache null if initialization fails
-const getBucket = async () => {
-  if (cachedBucket !== undefined) return cachedBucket
+const getBucket = async (): Promise<Bucket | undefined> => {
+  if (cachedBucket) return cachedBucket
   try {
-    const app = initializeApp()
-    cachedBucket = getStorage(app).bucket() as unknown as Bucket
-    const [exists] = await cachedBucket.exists()
-    console.log({ exists })
+    const app = getDefaultFirebaseApp()
+    const bucket = getStorage(app).bucket()
+    const [exists] = await bucket.exists()
     if (!exists) {
-      const created = await cachedBucket.create()
-      console.log({ created })
+      throw new Error(`Storage bucket ${bucket.name} does not exist`)
     }
+    cachedBucket = bucket as unknown as Bucket
   } catch (error) {
-    cachedBucket = null
     console.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
   }
   return cachedBucket
