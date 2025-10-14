@@ -1,0 +1,19 @@
+{
+  "name": "test-project",
+  "version": "0.0.0-test",
+  "license": "MIT",
+  "main": "test.js",
+  "scripts": {
+    "build": "test"
+  },
+  "dependencies": {
+    "test": "^1.0.0"
+  },
+  "devDependencies": {
+    "test-dev": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "custom": "test"
+}

@@ -4,10 +4,10 @@
 const { createCachedHttpsFunction } = require('../runtime.cjs')
 
 const METADATA = {
-  "generator": "gatsby-adapter-firebase@0.0.0-test",
+  "generator": "gatsby-adapter-firebase",
   "id": "ssr-engine-cached",
   "name": "DSG",
-  "version": "916bd438101b7db36b63b5e02832024cca2fe21353db7bef6bf97638d826ad6c"
+  "version": "b30af107251e9cff9edd8626c78be7840b16db0ba6faadbdc3fed4a961adbff5"
 }
 const CONFIG = {}
 

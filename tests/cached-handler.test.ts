@@ -14,6 +14,7 @@ vi.mock('firebase-admin/app', () => ({
 vi.mock('firebase-admin/storage', () => ({
   getStorage: vi.fn(() => ({
     bucket: () => ({
+      exists: vi.fn().mockResolvedValue([true]),
       file: (name: string) => ({
         async exists(): Promise<[boolean]> {
           return [cache.has(name)]

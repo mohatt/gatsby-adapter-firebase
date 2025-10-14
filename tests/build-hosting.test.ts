@@ -39,11 +39,11 @@ describe('buildHosting()', () => {
     expect(config.rewrites).toEqual([
       {
         source: '/ssr',
-        function: { functionId: 'ssr_engine', pinTag: true },
+        function: { functionId: 'ssr_engine' },
       },
       {
         source: '/ssr-deferred',
-        function: { functionId: 'ssr_engine_cached', pinTag: true },
+        function: { functionId: 'ssr_engine_cached' },
       },
       {
         source: '/docs/**',
@@ -98,11 +98,11 @@ describe('buildHosting()', () => {
     expect(config.rewrites).toEqual([
       {
         source: '/ssr',
-        function: { functionId: 'ssr_engine', pinTag: true, region: 'asia-northeast1' },
+        function: { functionId: 'ssr_engine', region: 'asia-northeast1' },
       },
       {
         source: '/api',
-        function: { functionId: 'hello_world', pinTag: true, region: 'europe-west1' },
+        function: { functionId: 'hello_world', region: 'europe-west1' },
       },
     ])
   })
@@ -118,7 +118,7 @@ describe('buildHosting()', () => {
     expect(config.rewrites).toEqual([
       {
         source: '/dsg',
-        function: { functionId: 'ssr_engine', pinTag: true },
+        function: { functionId: 'ssr_engine' },
       },
     ])
 

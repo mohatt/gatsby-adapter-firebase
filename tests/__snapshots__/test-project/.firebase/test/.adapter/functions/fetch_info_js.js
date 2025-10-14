@@ -4,10 +4,10 @@
 const { createHttpsFunction } = require('../runtime.cjs')
 
 const METADATA = {
-  "generator": "gatsby-adapter-firebase@0.0.0-test",
+  "generator": "gatsby-adapter-firebase",
   "id": "fetch-info-js",
   "name": "/api/fetch-info",
-  "version": "4591b6e1af3dde46ddfd1acfad122831dfe206f9ed822dc319a9450c1ac47bca"
+  "version": "efc1889f917c17e93ed8c5f22e72a05a2286f4090fd6eed1cf960f733f95be1a"
 }
 const CONFIG = {}
 
