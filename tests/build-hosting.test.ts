@@ -38,11 +38,11 @@ describe('buildHosting()', () => {
 
     expect(config.rewrites).toEqual([
       {
-        source: '/ssr',
+        regex: '^/ssr(?:/)?$',
         function: { functionId: 'ssr_engine' },
       },
       {
-        source: '/ssr-deferred',
+        regex: '^/ssr-deferred(?:/)?$',
         function: { functionId: 'ssr_engine_cached' },
       },
       {
@@ -97,11 +97,11 @@ describe('buildHosting()', () => {
 
     expect(config.rewrites).toEqual([
       {
-        source: '/ssr',
+        regex: '^/ssr(?:/)?$',
         function: { functionId: 'ssr_engine', region: 'asia-northeast1' },
       },
       {
-        source: '/api',
+        regex: '^/api(?:/)?$',
         function: { functionId: 'hello_world', region: 'europe-west1' },
       },
     ])
@@ -117,7 +117,7 @@ describe('buildHosting()', () => {
 
     expect(config.rewrites).toEqual([
       {
-        source: '/dsg',
+        regex: '^/dsg(?:/)?$',
         function: { functionId: 'ssr_engine' },
       },
     ])
