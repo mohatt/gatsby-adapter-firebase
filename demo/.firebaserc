@@ -6,7 +6,7 @@
     "gatsby-firebase-87451": {
       "hosting": {
         "gatsby": [
-          "gatsby-firebase-87451"
+          "gatsbyfire"
         ]
       }
     }
