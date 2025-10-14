@@ -1,4 +1,4 @@
-const adapter = require('../dist/index.cjs')
+const adapter = require('gatsby-adapter-firebase')
 
 module.exports = {
   adapter: adapter(),

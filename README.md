@@ -45,7 +45,7 @@ Add the adapter to `gatsby-config.js`:
 
 ```js
 // gatsby-config.js
-const firebaseAdapter = require('gatsby-adapter-firebase').default
+const firebaseAdapter = require('gatsby-adapter-firebase')
 
 /** @type {import('gatsby').GatsbyConfig} */
 module.exports = {

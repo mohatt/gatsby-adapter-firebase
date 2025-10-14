@@ -6,4 +6,5 @@ CHANGELOG.md
 demo/content
 demo/public
 demo/.cache
+demo/.firebase
 demo/package-lock.json
