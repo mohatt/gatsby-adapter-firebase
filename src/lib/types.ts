@@ -5,31 +5,30 @@ export interface HeaderKV {
   value: string
 }
 
-export interface FirebaseHostingRedirect {
-  source: string
+export type FirebaseHostingRule<T extends Record<string, unknown>> =
+  | (T & { regex: string; source?: never })
+  | (T & { source: string; regex?: never })
+
+export type FirebaseHostingRedirect = FirebaseHostingRule<{
   destination: string
-  type?: number
-}
+  type?: 301 | 302
+}>
 
-export interface FirebaseHostingHeader {
-  source: string
+export type FirebaseHostingHeader = FirebaseHostingRule<{
   headers: HeaderKV[]
-}
+}>
 
-export interface FirebaseHostingFunctionRewrite {
-  source?: string
-  regex?: string
+export type FirebaseHostingFunctionRewrite = FirebaseHostingRule<{
   function: {
     functionId: string
     region?: string
     pinTag?: boolean
   }
-}
+}>
 
-export interface FirebaseHostingDestRewrite {
-  source: string
+export type FirebaseHostingDestRewrite = FirebaseHostingRule<{
   destination: string
-}
+}>
 
 export type FirebaseHostingRewrite = FirebaseHostingFunctionRewrite | FirebaseHostingDestRewrite
 

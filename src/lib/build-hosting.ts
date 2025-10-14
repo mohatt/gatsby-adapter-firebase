@@ -33,8 +33,6 @@ export interface BuildHostingResult {
   config: FirebaseHostingJson
 }
 
-const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
-
 const ensureLeadingSlash = (value: string) => {
   if (!value) return '/'
   return value.startsWith('/') ? value : `/${value}`
@@ -171,7 +169,15 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
         // pinTag causes firebase deploy to fail sometimes
         // pinTag: true,
       }
-      rewrites.push(rewrite)
+      const region = extractRegion(config)
+      if (region) destination.region = region
+      rewrites.push(
+        source.endsWith('/page-data.json')
+          ? { source, function: destination }
+          : // Firebase is strict about trailing slashes, so we need to use regex here so
+            // that function routes match both with and without a trailing slash
+            { regex: sourceToRegex(source), function: destination },
+      )
       continue
     }
 
@@ -221,7 +227,7 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
         continue
       }
 
-      if (!REDIRECT_STATUS_CODES.includes(route.status)) {
+      if (route.status !== 301 && route.status !== 302) {
         reporter.warn(
           `Redirect ${route.path} -> ${route.toPath} uses unsupported status ${route.status}; skipping.`,
         )
