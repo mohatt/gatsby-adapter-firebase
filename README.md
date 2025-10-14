@@ -18,10 +18,11 @@ This adapter enables the following features on Firebase:
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [firebasejson](#firebasejson-generation)
+- [firebasejson](#firebasejson)
 - [Firebase functions](#firebase-functions)
 - [Adapter options](#adapter-options)
 - [DSG and SSR functions](#dsg-functions)
+- [Local workflows](#local-workflows)
 - [License](#license)
 
 ## Installation
@@ -62,7 +63,7 @@ Run a Gatsby build as usual. The adapter hooks into Gatsby’s post-build phase:
 npm run build
 ```
 
-This will create `.firebase/functions/` if you're using SSR, DSG, or functions and either create or update `firebase.json`.
+This will either create or update your `firebase.json` and build `.firebase/functions/` if you're using SSR, DSG, or standard functions.
 
 Next, point your Firebase Hosting target at the desired site (once per project):
 
@@ -70,29 +71,15 @@ Next, point your Firebase Hosting target at the desired site (once per project):
 firebase --project <project-id> target:apply hosting gatsby <site-id>
 ```
 
-Finally, deploy:
+Finally, deploy the project to Firebase or run locally using [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite):
 
 ```zsh
 firebase deploy
-```
-
-Or test the project locally:
-
-```zsh
+# or
 firebase emulators:start --project demo-site
 ```
 
-You will need the Firebase Storage emulator to be enabled in your `firebase.json`.
-
-```json
-{
-  "emulators": {
-    "storage": {
-      "port": 9199
-    }
-  }
-}
-```
+For local emulator setup and deployment limitations, see [Local workflows](#local-workflows).
 
 ## firebase.json
 
@@ -104,12 +91,13 @@ During `gatsby build` the adapter reads `firebase.json`, updates the entry match
 - The adapter merges the generated config into the entry for the target, replacing its `redirects`, `rewrites`, and `headers` with the data derived from Gatsby.
 - When Cloud Functions are produced, the `functions` section is merged by codebase name (default `gatsby`). Other codebases remain untouched.
 - If the file is missing, it is created with just the generated data and other Firebase defaults.
+- Other config sections are preserved.
 
-Because this file is regenerated on every build, it is safer to keep the version committed to source control as small as possible. Track only the entries you maintain by hand, ignore `.firebase/`, and avoid staging the adapter-generated changes unless you are pinning a deliberate override.
+Because this file is regenerated on every build, it is safer to keep the version committed to source control as small as possible. Track only the entries and configs you maintain by hand, ignore `.firebase/`, and avoid staging the adapter-generated files unless you are pinning a deliberate override.
 
 ## Firebase functions
 
-The adaptor packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions` (relative to the project root). Each Gatsby function is built into a single Firebase function. If you opted for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
+The adapter packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions` (relative to the project root). Each Gatsby function is built into a single Firebase function. If you opted for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
 
 - A default function for SSR function handler.
 - A cached [DSG variant](#dsg-functions) for pages marked with `defer: true`.
@@ -137,12 +125,15 @@ adapter: firebaseAdapter({
 - `functionsCodebase`: The `codebase` name placed in `firebase.json`. A matching CLI target is required for deployment.
 - `functionsRuntime`: Runtime string passed to Firebase (for example `nodejs20`).
 - `functionsConfig`: Default HTTPS options applied to every generated function.
-- `functionsConfigOverride`: Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant.
-- `excludeDatastoreFromEngineFunction`: When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles. Set `DEPLOY_URL` during the build so the functions can download the datastore on demand; otherwise the option is ignored.
+- `functionsConfigOverride`: Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant (e.g. `ssr-engine-cached`).
+- `excludeDatastoreFromEngineFunction`: When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles. Set `DEPLOY_URL` env var during the build so the functions can download the datastore on demand; otherwise the option is ignored.
 
 ## DSG functions
 
-The adapter provides cached variants for Gatsby functions that opt into Deferred Static Generation. These behave similarly to Gatsby Cloud but rely on Firebase Storage.
+The adapter supports **Deferred Static Generation (DSG)** by automatically creating a cached variant of Gatsby SSR Function if needed. It behave similarly to Gatsby Cloud but rely on **Firebase Storage**.
+
+> To enable DSG caching, your Firebase project must have **Cloud Storage** enabled and a **default bucket** configured.  
+> If Storage is disabled or no default bucket exists, DSG function will gracefully fall back to **standard SSR** behavior.
 
 ### Key characteristics
 
@@ -161,6 +152,36 @@ The handler always sets `cache-control` unless the function already provided one
 - Unsupported methods respond with `405 Method Not Allowed` and `cache-control: no-store`.
 
 Cache keys are per function version and URL path, so changing the Gatsby function code automatically invalidates the cache on the next deployment.
+
+## Local workflows
+
+### Local deployment
+
+Deploying functions from a local machine only works on Linux (or within a Docker container); other operating systems will produce an error like:
+
+> Error: Incompatible DSG/SSR executing environment. Function was built for "linux/x64" but is executing on "darwin/x64".
+
+This is because Gatsby bundles platform-specific binaries inside functions—and Firebase CLI evaluates the functions code before deploying it.
+
+### Local testing
+
+You can run the project locally using Firebase Local Emulator Suite.
+
+```zsh
+firebase emulators:start --project demo-site
+```
+
+If you are using DSG, you will need Firebase Storage emulator to be enabled in your `firebase.json`.
+
+```json
+{
+  "emulators": {
+    "storage": {
+      "port": 9199
+    }
+  }
+}
+```
 
 ## License
 
