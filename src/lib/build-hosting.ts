@@ -86,24 +86,33 @@ const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$
 
 const sourceToRegex = (source: string) => {
   if (!source || source === '/') return '^/$'
-  const trimmed = source.endsWith('/') ? source.slice(0, -1) : source
 
   let pattern = ''
-  for (let i = 0; i < trimmed.length; i += 1) {
-    const char = trimmed[i]
+  let i = 0
+  const len = source.length
+
+  while (i < len) {
+    const char = source[i]
+
     if (char === '*') {
-      if (trimmed[i + 1] === '*') {
-        pattern += '.*'
+      if (source[i + 1] === '*') {
+        pattern += '.*' // match any depth
         i += 1
       } else {
-        pattern += '[^/]*'
+        pattern += '[^/]*' // match one path segment
       }
-      continue
+    } else {
+      pattern += escapeRegex(char)
     }
-    pattern += escapeRegex(char)
+
+    i += 1
   }
 
-  return `^${pattern}${trimmed.endsWith('**') ? '$' : '/?$'}`
+  // remove duplicate slashes and normalize trailing behavior
+  pattern = pattern.replace(/\/+$/, '')
+
+  // allow optional trailing slash for all routes (Firebase behavior)
+  return `^${pattern}(?:/)?$`
 }
 
 const extractRegion = (config?: FunctionConfig): string | null => {
