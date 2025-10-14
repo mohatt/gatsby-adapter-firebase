@@ -12,7 +12,7 @@ const HomeTemplate = ({ data: { site } }) => {
 
     async function fetchApiPayload() {
       try {
-        const response = await fetch('/api/hello-world')
+        const response = await fetch('/api/hello-world/')
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`)
         }
@@ -40,25 +40,25 @@ const HomeTemplate = ({ data: { site } }) => {
       title: 'Static-first builds',
       description:
         'Gatsby pre-renders pages into Firebase Hosting. This home page and the blog are emitted as static assets ready for the CDN.',
-      cta: { type: 'route', label: 'Browse the blog', to: 'blog' },
+      cta: { label: 'Browse the blog', to: 'blog' },
     },
     {
       title: 'Server-rendered routes',
       description:
         'Use getServerData to run on-demand rendering in Cloud Functions. Perfect for dashboards, authenticated content, or live data.',
-      cta: { type: 'path', label: 'See the SSR example', href: '/ssr' },
+      cta: { label: 'See the SSR example', href: '/ssr' },
     },
     {
       title: 'API endpoints',
       description:
         'Drop JavaScript files into src/api and the adapter deploys them as callable HTTPS functions next to your site.',
-      cta: { type: 'path', label: 'Call /api/hello-world', href: '/api/hello-world' },
+      cta: { label: 'Call /api/hello-world', href: '/api/hello-world/' },
     },
     {
       title: 'Deferred static generation (DSG)',
       description:
         'Ship thousands of pages without long build times. DSG content renders on the first request and is cached on Hosting.',
-      cta: { type: 'path', label: 'Open the DSG page', href: '/about-defer' },
+      cta: { label: 'Open the DSG page', to: '/ssg' },
     },
   ]
 
@@ -81,7 +81,7 @@ const HomeTemplate = ({ data: { site } }) => {
   ]
 
   const renderCta = (cta) => {
-    if (cta.type === 'route') {
+    if (cta.to) {
       return (
         <Link className='btn btn-link px-0' to={cta.to}>
           {cta.label} →
