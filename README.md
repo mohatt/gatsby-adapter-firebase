@@ -18,7 +18,7 @@ This adapter enables the following features on Firebase:
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [firebasejson](#firebasejson)
+- [`firebase.json`](#firebasejson)
 - [Firebase functions](#firebase-functions)
 - [Adapter options](#adapter-options)
 - [DSG and SSR functions](#dsg-functions)
@@ -31,7 +31,7 @@ This adapter enables the following features on Firebase:
 npm install gatsby-adapter-firebase
 ```
 
-You will also need Firebase CLI if you're planning to do local deployments or use [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) to run the project locally:
+You will also need Firebase CLI if you're planning to do local deployments or use [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite):
 
 ```zsh
 npm install -g firebase-tools
@@ -120,19 +120,39 @@ adapter: firebaseAdapter({
 })
 ```
 
-- `hostingTarget`: The Firebase Hosting target in `firebase.json` to replace. Match this with `firebase target:apply hosting <target> <site>`.
-- `functionsOutDir`: Directory for the generated Firebase Functions workspace.
-- `functionsCodebase`: The `codebase` name placed in `firebase.json`. A matching CLI target is required for deployment.
-- `functionsRuntime`: Runtime string passed to Firebase (for example `nodejs20`).
-- `functionsConfig`: Default HTTPS options applied to every generated function.
-- `functionsConfigOverride`: Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant (e.g. `ssr-engine-cached`).
-- `excludeDatastoreFromEngineFunction`: When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles. Set `DEPLOY_URL` env var during the build so the functions can download the datastore on demand; otherwise the option is ignored.
+#### hostingTarget
+
+The Firebase Hosting target in `firebase.json` to replace. Match this with `firebase target:apply hosting <target> <site>`.
+
+#### functionsOutDir
+
+Directory for the generated Firebase Functions workspace.
+
+#### functionsCodebase
+
+The `codebase` name placed in `firebase.json`. A matching CLI target is required for deployment.
+
+#### functionsRuntime
+
+Runtime string passed to Firebase (for example `nodejs20`).
+
+#### functionsConfig
+
+Default HTTPS options applied to every generated function.
+
+#### functionsConfigOverride
+
+Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant (e.g. `ssr-engine-cached`).
+
+#### excludeDatastoreFromEngineFunction
+
+When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles. Set `DEPLOY_URL` env var during the build so the functions can download the datastore on demand; otherwise the option is ignored.
 
 ## DSG functions
 
 The adapter supports **Deferred Static Generation (DSG)** by automatically creating a cached variant of Gatsby SSR Function if needed. It behave similarly to Gatsby Cloud but rely on **Firebase Storage**.
 
-> To enable DSG caching, your Firebase project must have **Cloud Storage** enabled and a **default bucket** configured.  
+> To enable DSG caching, your Firebase project must have **Cloud Storage** enabled.  
 > If Storage is disabled or no default bucket exists, DSG function will gracefully fall back to **standard SSR** behavior.
 
 ### Key characteristics
