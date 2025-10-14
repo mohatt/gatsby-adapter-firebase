@@ -4,7 +4,14 @@
   "description": "Gatsby adapter for Firebase",
   "keywords": [
     "gatsby",
-    "transformation"
+    "gatsby-adapter",
+    "firebase",
+    "firebase-hosting",
+    "firebase-functions",
+    "gatsby-functions",
+    "serverless",
+    "ssr",
+    "dsg"
   ],
   "homepage": "https://github.com/mohatt/gatsby-adapter-firebase",
   "bugs": "https://github.com/mohatt/gatsby-adapter-firebase/issues",
@@ -70,14 +77,14 @@
     "firebase-functions": "^6.5.0",
     "gatsby": "^5.14.6",
     "lodash": "^4.17.21",
-    "memfs": "^4.48.1",
-    "pkgroll": "^2.17.0",
+    "memfs": "^4.49.0",
+    "pkgroll": "^2.18.1",
     "prettier": "^3.6.2",
     "prettier-plugin-packagejson": "^2.5.19",
     "semantic-release": "^24.2.9",
     "supertest": "^7.1.4",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.45.0",
+    "typescript-eslint": "^8.46.1",
     "vitest": "^3.2.4",
     "vitest-memfs": "^1.5.1"
   },
