@@ -31,7 +31,7 @@ This adapter enables the following features on Firebase:
 npm install gatsby-adapter-firebase
 ```
 
-You will also need Firebase CLI if you're planning to do local deployments or use [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite):
+You will also need Firebase CLI if plan to do local deployments or use [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite):
 
 ```zsh
 npm install -g firebase-tools
@@ -97,7 +97,7 @@ Because this file is regenerated on every build, it is safer to keep the version
 
 ## Firebase functions
 
-The adapter packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions` (relative to the project root). Each Gatsby function is built into a single Firebase function. If you opted for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
+The adapter packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions`. Each Gatsby function is built into a single Firebase function. If you opted for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
 
 - A default function for SSR function handler.
 - A cached [DSG variant](#dsg-functions) for pages marked with `defer: true`.
@@ -122,7 +122,11 @@ adapter: firebaseAdapter({
 
 #### hostingTarget
 
-The Firebase Hosting target in `firebase.json` to replace. Match this with `firebase target:apply hosting <target> <site>`.
+The Firebase Hosting target in `firebase.json` to replace. Match this with:
+
+```zsh
+firebase --project <project-id> target:apply hosting <target> <site-id>
+```
 
 #### functionsOutDir
 
@@ -153,7 +157,7 @@ When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles.
 The adapter supports **Deferred Static Generation (DSG)** by automatically creating a cached variant of Gatsby SSR Function if needed. It behave similarly to Gatsby Cloud but rely on **Firebase Storage**.
 
 > To enable DSG caching, your Firebase project must have **Cloud Storage** enabled.  
-> If Storage is disabled or no default bucket exists, DSG function will gracefully fall back to **standard SSR** behavior.
+> If Storage is disabled or no default bucket exists, DSG function will gracefully fall back to **standard SSR** behavior with no caching.
 
 ### Key characteristics
 
