@@ -6,7 +6,7 @@ import { Link } from 'gatsby-plugin-advanced-pages'
 const PostTemplate = ({ data: { post } }) => (
   <Layout title={post.frontmatter.title}>
     <div className='mb-4 text-muted'>
-      <p className='mb-2'>
+      <p className='lead'>
         Generated from Markdown during the Gatsby build and served as a static page.
       </p>
       <div>

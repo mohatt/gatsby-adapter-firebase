@@ -12,7 +12,7 @@ const HomeTemplate = ({ data: { site } }) => {
 
     async function fetchApiPayload() {
       try {
-        const response = await fetch('/api/hello-world/')
+        const response = await fetch('/api/hello-world')
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`)
         }
@@ -52,7 +52,7 @@ const HomeTemplate = ({ data: { site } }) => {
       title: 'Gatsby Functions',
       description:
         'Drop JavaScript files into src/api and the adapter deploys them as callable HTTPS functions next to your site.',
-      cta: { label: 'Call /api/hello-world', href: '/api/hello-world/' },
+      cta: { label: 'Call /api/hello-world', href: '/api/hello-world' },
     },
     {
       title: 'Deferred static generation (DSG)',
@@ -192,7 +192,7 @@ const HomeTemplate = ({ data: { site } }) => {
                 )}
               </div>
               <div className='card-footer bg-transparent border-0 pt-0'>
-                <a className='btn btn-link px-0' href='/api/fetch-info/'>
+                <a className='btn btn-link px-0' href='/api/fetch-info'>
                   Inspect API response →
                 </a>
               </div>

@@ -18,14 +18,14 @@ const SSRPage = ({ serverData }) => {
 
   return (
     <Layout title='SSR Page with Dogs'>
-      <p>
-        Every visit to this page triggers <code>getServerData</code>. Gatsby Firebase adapter
+      <p className='lead'>
+        Every visit to this page triggers <code>getServerData()</code>. Gatsby Firebase adapter
         executes that handler in a Cloud Function, fetches fresh data from{' '}
         <a href='https://dog.ceo/dog-api/'>Dog CEO</a>, and streams the HTML response back through
         Firebase Hosting.
       </p>
       <div className='card border-0 mb-4 shadow-sm w-75'>
-        <pre className='p-2 m-2'>
+        <pre className='m-2 p-3'>
           <code>{JSON.stringify(serverData, null, 2)}</code>
         </pre>
       </div>
