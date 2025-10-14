@@ -2,9 +2,7 @@
 
 [![NPM Version][npm-img]][npm-url] [![Build Status][ci-img]][ci-url] [![Code Coverage][codecov-img]][codecov-url] [![Gatsby Version][gatsby-img]][gatsby-url] [![GitHub License][license-img]][license-url]
 
-Gatsby [adapter](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/adapters/) for [Firebase](https://firebase.google.com/).
-
-This adapter enables the following features on Firebase:
+This [adapter](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/adapters/) enables the following features on [Firebase](https://firebase.google.com/):
 
 - [Redirects](https://www.gatsbyjs.com/docs/reference/config-files/actions/#createRedirect)
 - [HTTP Headers](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/headers/)
