@@ -3,3 +3,7 @@ pnpm-lock.yaml
 CHANGELOG.md
 **/__fixtures__/**
 **/__snapshots__/**
+demo/content
+demo/public
+demo/.cache
+demo/package-lock.json
