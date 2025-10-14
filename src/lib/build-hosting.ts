@@ -72,14 +72,17 @@ const applyPathPrefix = (value: string, pathPrefix: string) => {
 const normalizeSource = (value: string, pathPrefix: string) => {
   const base = ensureLeadingSlash(value || '/')
   const prefixed = applyPathPrefix(base, pathPrefix)
-  return prefixed.replace(/\/\*$/u, '/**') || '/'
+  // convert trailing wildcard to /:splat* for Firebase
+  return prefixed.replace(/\/\*$/u, '/:splat*') || '/'
 }
 
 const normalizeDestination = (value: string, pathPrefix: string) => {
   const { path, suffix } = splitLocation(value)
   const normalizedPath = applyPathPrefix(ensureLeadingSlash(path || '/'), pathPrefix) || '/'
   const collapsed = normalizedPath.replace(/\/{2,}/g, '/')
-  return `${collapsed}${suffix ?? ''}`
+  // convert trailing wildcard to :splat for Firebase
+  const withSplat = collapsed.replace(/\/\*$/u, '/:splat')
+  return `${withSplat}${suffix ?? ''}`
 }
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -159,19 +162,14 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
           `Function route ${route.path} -> "${route.functionId}" is marked cache=true but cached variant could not be generated; using default deployment.`,
         )
       }
-      const functionEntry = route.cache && variants.cached ? variants.cached : variants.default
-      const { deployId, config } = functionEntry
-      const region = extractRegion(config)
-
-      const rewrite: FirebaseHostingFunctionRewrite = {
-        // Firebase is strict about trailing slashes, so we need to use regex here so
-        // that function routes match both with and without a trailing slash
-        regex: sourceToRegex(source),
-        function: {
-          functionId: deployId,
-          // pinTag: true, // pinTag causes firebase deploy to fail sometimes
-          ...(region ? { region } : {}),
-        },
+      const { deployId, config } =
+        route.cache && variants.cached //
+          ? variants.cached
+          : variants.default
+      const destination: FirebaseHostingFunctionRewrite['function'] = {
+        functionId: deployId,
+        // pinTag causes firebase deploy to fail sometimes
+        // pinTag: true,
       }
       rewrites.push(rewrite)
       continue
