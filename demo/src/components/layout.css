@@ -1,47 +1,17 @@
 @import 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css';
+
 #avatar {
   display: inline-block;
-  width: 48px;
-  height: 48px;
-  background-image: url('../images/avatar.png');
+  width: 38px;
+  height: 38px;
+  margin-right: .7rem;
+  background-image: url('../images/gatsby-mono.svg');
   background-size: cover;
-  border-radius: 50%;
-  border: 1px solid #ccc;
-}
-
-@media (hover: hover) {
-  #avatar:hover {
-    background-image: url('../images/avatar-smile.png');
-  }
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .about-avatar {
   background: darkslategray;
   border-radius: 5px;
-}
-
-body {
-  color: darkslategrey;
-}
-
-.foo {
-  color: blue;
-}
-
-.unused-rule {
-  color: green;
-}
-
-.another-unused-rule {
-  color: green;
-}
-
-@keyframes blink {
-  0% {
-    opacity: 100%;
-  }
-
-  100% {
-    opacity: 0;
-  }
 }

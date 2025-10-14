@@ -24,8 +24,8 @@ const BlogTemplate = ({ data, pageContext }) => {
     <Layout title={title}>
       <div>
         <p>
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ducimus, vero, obcaecati, aut,
-          error quam sapiente nemo saepe.
+          These posts are sourced from Markdown files in <code>content/blog</code>, transformed at
+          build time, and deployed as static HTML.
         </p>
       </div>
       <div className='row'>
@@ -36,10 +36,13 @@ const BlogTemplate = ({ data, pageContext }) => {
                 <h2 className='card-title'>{node.frontmatter.title}</h2>
                 <p className='card-text'>{node.excerpt}</p>
                 <Link to='blog.post' params={{ post: node.frontmatter.slug }}>
-                  Read More →
+                  Read the article →
                 </Link>
               </div>
-              <div className='card-footer text-muted'>Posted on January 1, 2017</div>
+              <div className='card-footer text-muted'>
+                Served as static HTML • Tags:{' '}
+                {node.frontmatter.tags ? node.frontmatter.tags.join(', ') : 'none'}
+              </div>
             </div>
           ))}
         </div>

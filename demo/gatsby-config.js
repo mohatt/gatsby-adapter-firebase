@@ -6,7 +6,7 @@ module.exports = {
     {
       resolve: `gatsby-source-filesystem`,
       options: {
-        path: `${__dirname}/content`,
+        path: `content`,
         name: `content`,
       },
     },
@@ -47,7 +47,7 @@ module.exports = {
     },
   ],
   siteMetadata: {
-    title: `Gatsby Demo`,
-    description: `Gatsby Demo Description`,
+    title: `Gatsby Adapter for Firebase`,
+    description: `Explore how the Gatsby Firebase adapter serves static pages, SSR routes, API endpoints, and DSG content on Firebase Hosting and Cloud Functions.`,
   },
 }

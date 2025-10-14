@@ -20,7 +20,7 @@ async function createFeedPages({ graphql, page, createAdvancedPage }) {
     route: 'blog',
     pagination: {
       count: result.data.allMarkdownRemark.totalCount,
-      limit: 2,
+      limit: 3,
     },
     filter: {
       fileAbsolutePath: {
@@ -38,7 +38,7 @@ async function createFeedPages({ graphql, page, createAdvancedPage }) {
       },
       pagination: {
         count: tag.totalCount,
-        limit: 2,
+        limit: 3,
       },
       filter: {
         fileAbsolutePath: {

@@ -6,16 +6,21 @@ import { Link } from 'gatsby-plugin-advanced-pages'
 const PostTemplate = ({ data: { post } }) => (
   <Layout title={post.frontmatter.title}>
     <div className='mb-4 text-muted'>
-      <p>Posted on August 24, 2014 at 9:00 PM</p>
-      <p>
+      <p className='mb-2'>
+        Generated from Markdown during the Gatsby build and served as a static page.
+      </p>
+      <div>
         {post.frontmatter.tags.map((tag) => (
           <Link key={tag} to='blog.tag' params={{ tag }}>
-            <span className='badge badge-pill badge-primary'>{tag}</span>{' '}
+            <span className='badge badge-primary mr-2 p-2'>{tag}</span>
           </Link>
         ))}
-      </p>
+      </div>
     </div>
     <div dangerouslySetInnerHTML={{ __html: post.html }} />
+    <div className='mt-4'>
+      <Link to='blog'>← Back to all posts</Link>
+    </div>
   </Layout>
 )
 
