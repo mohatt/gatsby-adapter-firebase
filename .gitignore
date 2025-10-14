@@ -20,4 +20,7 @@ logs
 *.sublime-workspace
 
 # example site
-/example
+/example**
+/gatsby-adapter-aws
+/gatsby-adapter-netlify
+/isolate

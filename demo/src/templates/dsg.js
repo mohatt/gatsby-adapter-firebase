@@ -6,9 +6,9 @@ const DsgTemplate = () => (
   <Layout title='Deferred static generation'>
     <div>
       <p className='lead'>
-        This page opts into Gatsby&apos;s Deferred Static Generation (DSG). When you hit it for the first time,
-        it renders on demand with Cloud Functions, caches the
-        result to Firebase Storage, and serves the cached HTML on subsequent visits.
+        This page opts into Gatsby&apos;s Deferred Static Generation (DSG). When you hit it for the
+        first time, it renders on demand with Cloud Functions, caches the result to Firebase
+        Storage, and serves the cached HTML on subsequent visits.
       </p>
       <p>
         DSG is ideal when you have a large collection of pages that rarely change: docs, catalogs,
@@ -25,7 +25,8 @@ const DsgTemplate = () => (
           visitors see CDN-speed responses.
         </li>
         <li className='mb-0'>
-          <strong>Freshness:</strong> redeploy to invalidate the cache, or clear the cache manually from Firebase Storage Dashboard.
+          <strong>Freshness:</strong> redeploy to invalidate the cache, or clear the cache manually
+          from Firebase Storage Dashboard.
         </li>
       </ul>
       <p className='small text-muted mb-0'>

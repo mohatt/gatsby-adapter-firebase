@@ -25,10 +25,17 @@ const SSRPage = ({ serverData }) => {
         Firebase Hosting.
       </p>
       <div className='card border-0 mb-4 shadow-sm w-75'>
-        <pre className='p-2 m-2'><code>{JSON.stringify(serverData, null, 2)}</code></pre>
+        <pre className='p-2 m-2'>
+          <code>{JSON.stringify(serverData, null, 2)}</code>
+        </pre>
       </div>
       <div className='card border-0 shadow-sm w-50'>
-        <img alt='Happy dog sourced at request time' src={serverData.dogUrl} className='card-img-top' width='500' />
+        <img
+          alt='Happy dog sourced at request time'
+          src={serverData.dogUrl}
+          className='card-img-top'
+          width='500'
+        />
         <div className='card-body'>
           <p className='mb-1'>Rendered at: {fetchedAt}</p>
           <p className='small text-muted mb-0'>

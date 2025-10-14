@@ -28,7 +28,7 @@ const HomeTemplate = ({ data: { site } }) => {
       }
     }
 
-    fetchApiPayload()
+    void fetchApiPayload()
 
     return () => {
       isMounted = false
@@ -43,13 +43,13 @@ const HomeTemplate = ({ data: { site } }) => {
       cta: { label: 'Browse the blog', to: 'blog' },
     },
     {
-      title: 'Server-rendered routes',
+      title: 'Server-Side Rendering (SSR)',
       description:
         'Use getServerData to run on-demand rendering in Cloud Functions. Perfect for dashboards, authenticated content, or live data.',
-      cta: { label: 'See the SSR example', href: '/ssr' },
+      cta: { label: 'See the SSR page', to: '/ssr' },
     },
     {
-      title: 'API endpoints',
+      title: 'Gatsby Functions',
       description:
         'Drop JavaScript files into src/api and the adapter deploys them as callable HTTPS functions next to your site.',
       cta: { label: 'Call /api/hello-world', href: '/api/hello-world/' },
@@ -58,7 +58,7 @@ const HomeTemplate = ({ data: { site } }) => {
       title: 'Deferred static generation (DSG)',
       description:
         'Ship thousands of pages without long build times. DSG content renders on the first request and is cached on Hosting.',
-      cta: { label: 'Open the DSG page', to: '/ssg' },
+      cta: { label: 'Open the DSG page', to: '/dsg' },
     },
   ]
 
@@ -103,9 +103,7 @@ const HomeTemplate = ({ data: { site } }) => {
           <h2 className='display-5 mb-3 text-dark'>
             Deploy <span className='text-primary'>Gatsby</span> to Firebase with ease
           </h2>
-          <p className='lead text-muted mb-4'>
-            {site.siteMetadata.description}
-          </p>
+          <p className='lead text-muted mb-4'>{site.siteMetadata.description}</p>
           <div className='d-flex flex-wrap align-items-center'>
             <a
               className='btn btn-primary mr-3 mb-2'
@@ -156,14 +154,15 @@ const HomeTemplate = ({ data: { site } }) => {
                 <ol className='mb-0 pl-3'>
                   {quickChecks.map((item) => (
                     <li key={item.title} className='mb-2'>
-                      <strong>{item.title}.</strong> <span className='text-muted'>{item.description}</span>
+                      <strong>{item.title}.</strong>{' '}
+                      <span className='text-muted'>{item.description}</span>
                     </li>
                   ))}
                   <li className='mb-0'>
                     <strong>Observe live routes.</strong>{' '}
                     <span className='text-muted'>
-                      Visit `/ssr` for server rendering, `/about-defer` for DSG, or call an API under
-                      `/api/*`.
+                      Visit `/ssr` for server rendering, `/about-defer` for DSG, or call an API
+                      under `/api/*`.
                     </span>
                   </li>
                 </ol>
@@ -193,7 +192,7 @@ const HomeTemplate = ({ data: { site } }) => {
                 )}
               </div>
               <div className='card-footer bg-transparent border-0 pt-0'>
-                <a className='btn btn-link px-0' href='/api/fetch-info'>
+                <a className='btn btn-link px-0' href='/api/fetch-info/'>
                   Inspect API response →
                 </a>
               </div>
