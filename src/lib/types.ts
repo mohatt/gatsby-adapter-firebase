@@ -17,7 +17,8 @@ export interface FirebaseHostingHeader {
 }
 
 export interface FirebaseHostingFunctionRewrite {
-  source: string
+  source?: string
+  regex?: string
   function: {
     functionId: string
     region?: string

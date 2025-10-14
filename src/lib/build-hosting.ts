@@ -82,6 +82,30 @@ const normalizeDestination = (value: string, pathPrefix: string) => {
   return `${collapsed}${suffix ?? ''}`
 }
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const sourceToRegex = (source: string) => {
+  if (!source || source === '/') return '^/$'
+  const trimmed = source.endsWith('/') ? source.slice(0, -1) : source
+
+  let pattern = ''
+  for (let i = 0; i < trimmed.length; i += 1) {
+    const char = trimmed[i]
+    if (char === '*') {
+      if (trimmed[i + 1] === '*') {
+        pattern += '.*'
+        i += 1
+      } else {
+        pattern += '[^/]*'
+      }
+      continue
+    }
+    pattern += escapeRegex(char)
+  }
+
+  return `^${pattern}${trimmed.endsWith('**') ? '$' : '/?$'}`
+}
+
 const extractRegion = (config?: FunctionConfig): string | null => {
   const region = config?.region
   if (!region) return null
@@ -131,7 +155,9 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       const region = extractRegion(config)
 
       const rewrite: FirebaseHostingFunctionRewrite = {
-        source,
+        // Firebase is strict about trailing slashes, so we need to use regex here so
+        // that function routes match both with and without a trailing slash
+        regex: sourceToRegex(source),
         function: {
           functionId: deployId,
           // pinTag: true, // pinTag causes firebase deploy to fail sometimes
