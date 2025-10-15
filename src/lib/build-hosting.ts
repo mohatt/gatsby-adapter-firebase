@@ -38,49 +38,106 @@ const ensureLeadingSlash = (value: string) => {
   return value.startsWith('/') ? value : `/${value}`
 }
 
-const splitLocation = (value: string) => {
-  if (!value) return { path: '', suffix: '' }
+const splitLocation = (value: string): [path: string, suffix: string] => {
+  if (!value) return ['', '']
   const index = value.search(/[?#]/)
-  if (index === -1) return { path: value, suffix: '' }
-  return {
-    path: value.slice(0, index),
-    suffix: value.slice(index),
-  }
+  if (index === -1) return [value, '']
+  return [
+    value.slice(0, index),
+    value.slice(index),
+  ]
 }
 
 const applyPathPrefix = (value: string, pathPrefix: string) => {
   if (!pathPrefix) return value
-  const normalizedPrefix = ensureLeadingSlash(pathPrefix).replace(/\/$/, '')
-  if (!normalizedPrefix || normalizedPrefix === '/') {
-    return value
-  }
-
-  if (value === '/') {
-    return normalizedPrefix
-  }
-
-  if (value.startsWith(`${normalizedPrefix}/`) || value === normalizedPrefix) {
-    return value
-  }
-
+  const prefix = ensureLeadingSlash(pathPrefix).replace(/\/$/, '')
+  if (!prefix || prefix === '/') return value
+  if (value === '/') return prefix
+  if (value.startsWith(`${prefix}/`) || value === prefix) return value
   // collapse slashes
-  return `${normalizedPrefix}${value}`.replace(/\/{2,}/g, '/')
+  return `${prefix}${value}`.replace(/\/{2,}/g, '/')
 }
 
 const normalizeSource = (value: string, pathPrefix: string) => {
-  const base = ensureLeadingSlash(value || '/')
+  const base = ensureLeadingSlash(value)
   const prefixed = applyPathPrefix(base, pathPrefix)
   // convert trailing wildcard to /:splat* for Firebase
   return prefixed.replace(/\/\*$/u, '/:splat*') || '/'
 }
 
-const normalizeDestination = (value: string, pathPrefix: string) => {
-  const { path, suffix } = splitLocation(value)
-  const normalizedPath = applyPathPrefix(ensureLeadingSlash(path || '/'), pathPrefix) || '/'
-  const collapsed = normalizedPath.replace(/\/{2,}/g, '/')
-  // convert trailing wildcard to :splat for Firebase
-  const withSplat = collapsed.replace(/\/\*$/u, '/:splat')
-  return `${withSplat}${suffix ?? ''}`
+interface RedirectTransformResult {
+  source: string
+  destination?: string
+  destinationSuffix?: string
+  isExternal?: boolean
+}
+
+const transformRedirect = (fromPath: string, toPath?: string): RedirectTransformResult => {
+  const sourceSegments = ensureLeadingSlash(fromPath).split('/')
+  const hasDestination = toPath != null
+  const wildcardNames: string[] = []
+
+  const wildcardNameAt = (index: number) => (index === 0 ? 'splat' : `splat${index}`)
+  const sourceTransformed = sourceSegments.map((segment, index) => {
+    if (index === 0) return segment
+    if (segment === '*') {
+      if (!hasDestination) return '**'
+      const name = wildcardNameAt(wildcardNames.length)
+      wildcardNames.push(name)
+      return `:${name}*`
+    }
+    return segment
+  })
+
+  const source = sourceTransformed.join('/').replace(/\/{2,}/g, '/')
+
+  if (!hasDestination) {
+    return { source }
+  }
+
+  let destinationPattern: string | undefined
+  let destinationSuffix: string | undefined
+  let destinationOrigin: string | undefined
+  let isExternal = false
+
+  if (/^https?:\/\//i.test(toPath)) {
+    isExternal = true
+    try {
+      const parsed = new URL(toPath)
+      destinationOrigin = `${parsed.protocol}//${parsed.host}`
+      destinationPattern = parsed.pathname
+      destinationSuffix = `${parsed.search}${parsed.hash}`
+    } catch {
+      ;([destinationPattern, destinationSuffix] = splitLocation(toPath))
+    }
+  } else {
+    ;([destinationPattern, destinationSuffix] = splitLocation(toPath))
+  }
+
+  const destinationSegments = ensureLeadingSlash(destinationPattern).split('/')
+  let wildcardIndex = 0
+
+  const destinationTransformed = destinationSegments.map((segment, index) => {
+    if (index === 0) return segment
+    if (segment === '*') {
+      const name =
+        wildcardNames[wildcardIndex] ??
+        // fallback for mismatched wildcards to keep rule valid (value will be empty)
+        wildcardNameAt(wildcardIndex)
+      wildcardIndex += 1
+      return `:${name}`
+    }
+    return segment
+  })
+
+  const destinationPath = destinationTransformed.join('/').replace(/\/{2,}/g, '/')
+
+  return {
+    source,
+    destination: `${destinationOrigin ?? ''}${destinationPath}`,
+    destinationSuffix,
+    isExternal,
+  }
 }
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -144,14 +201,14 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
   }
 
   for (const route of routesManifest) {
-    const { path: routePath, suffix: routeSuffix } = splitLocation(route.path)
-    const source = normalizeSource(routePath, pathPrefix)
+    const [routePath, routeSuffix] = splitLocation(route.path)
+    const normalizedSource = normalizeSource(routePath, pathPrefix)
 
     if (route.type === 'function') {
       const variants = functionsMap!.get(route.functionId)
       if (!variants) {
         reporter.warn(
-          `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${source}`,
+          `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${normalizedSource}`,
         )
         continue
       }
@@ -172,17 +229,17 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       const region = extractRegion(config)
       if (region) destination.region = region
       rewrites.push(
-        source.endsWith('/page-data.json')
-          ? { source, function: destination }
+        normalizedSource.endsWith('/page-data.json')
+          ? { source: normalizedSource, function: destination }
           : // Firebase is strict about trailing slashes, so we need to use regex here so
             // that function routes match both with and without a trailing slash
-            { regex: sourceToRegex(source), function: destination },
+            { regex: sourceToRegex(normalizedSource), function: destination },
       )
       continue
     }
 
     if (route.type === 'static') {
-      addHeaders(source, route.headers)
+      addHeaders(normalizedSource, route.headers)
       continue
     }
 
@@ -190,6 +247,13 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       if (routeSuffix) {
         reporter.warn(
           `Redirect "${route.path}" -> "${route.toPath}" contains query parameters or hash fragments which Firebase Hosting cannot match; skipping this rule.`,
+        )
+        continue
+      }
+
+      if (route.toPath == null) {
+        reporter.warn(
+          `Redirect ${route.path} is missing a toPath which Firebase Hosting requires; skipping.`,
         )
         continue
       }
@@ -207,20 +271,27 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       const conditions = route['conditions'] as Record<string, unknown> | undefined
       if (conditions && Object.keys(conditions).length > 0) {
         reporter.warn(
-          `Redirect ${route.path} -> ${route.toPath} has conditions (${Object.keys(conditions).join(', ')}) which are not supported by Firebase Hosting; skipping rewrite for ${source}`,
+          `Redirect ${route.path} -> ${route.toPath} has conditions (${Object.keys(conditions).join(', ')}) which are not supported by Firebase Hosting; skipping rewrite for ${normalizedSource}`,
         )
         continue
       }
 
-      const isExternal = /^https?:\/\//i.test(route.toPath)
-      const destination = isExternal ? route.toPath : normalizeDestination(route.toPath, pathPrefix)
+      let destination = route.toPath
+      const redirect = transformRedirect(routePath, destination)
+      const source = applyPathPrefix(redirect.source, pathPrefix)
+
+      if (redirect.destination) {
+        destination = redirect.isExternal
+          ? `${redirect.destination}${redirect.destinationSuffix}`
+          : `${applyPathPrefix(redirect.destination, pathPrefix)}${redirect.destinationSuffix}`
+      }
 
       if (route.status === 200) {
-        if (isExternal) {
+        if (redirect.isExternal) {
           reporter.warn(
             `Rewrite ${route.path} -> ${route.toPath} targets an external URL; Firebase Hosting rewrites cannot proxy to external origins. Falling back to 302 redirect.`,
           )
-          redirects.push({ source, destination: route.toPath, type: 302 })
+          redirects.push({ source, destination, type: 302 })
         } else {
           rewrites.push({ source, destination })
         }
