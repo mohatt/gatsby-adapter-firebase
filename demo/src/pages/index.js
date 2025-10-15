@@ -3,7 +3,7 @@ import { graphql, Script } from 'gatsby'
 import { Link } from 'gatsby-plugin-advanced-pages'
 import Layout from '../components/layout'
 
-const HomeTemplate = ({ data: { site } }) => {
+const Home = ({ data: { site } }) => {
   const [apiStatus, setApiStatus] = useState('loading')
   const [apiPayload, setApiPayload] = useState(null)
 
@@ -276,10 +276,7 @@ export const Head = ({ data }) => {
 }
 
 export const query = graphql`
-  query Page($id: String!) {
-    page(id: { eq: $id }) {
-      title
-    }
+  query HomePage {
     site {
       siteMetadata {
         title
@@ -289,4 +286,4 @@ export const query = graphql`
   }
 `
 
-export default HomeTemplate
+export default Home

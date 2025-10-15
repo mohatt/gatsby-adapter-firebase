@@ -1,5 +1,7 @@
 const adapter = require('gatsby-adapter-firebase')
+const advancedPages = require('./advanced-pages')
 
+/** @type {import('gatsby').GatsbyConfig} */
 module.exports = {
   adapter: adapter(),
   plugins: [
@@ -24,7 +26,10 @@ module.exports = {
       },
     },
     `gatsby-transformer-remark`,
-    `gatsby-plugin-advanced-pages`,
+    {
+      resolve: `gatsby-plugin-advanced-pages`,
+      options: advancedPages,
+    },
   ],
   headers: [
     {

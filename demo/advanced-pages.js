@@ -1,3 +1,26 @@
+/** @type {import('gatsby-plugin-advanced-pages/node').PluginOptions} */
+module.exports = {
+  pages: [
+    {
+      title: 'Blog',
+      routes: {
+        blog: '/blog',
+        'blog.tag': '/blog/tag/:tag',
+      },
+      template: 'blog.js',
+      helper: createFeedPages,
+    },
+    {
+      title: 'Blog Post',
+      routes: {
+        'blog.post': '/blog/:post',
+      },
+      template: 'post.js',
+      helper: createPostPages,
+    },
+  ],
+}
+
 async function createFeedPages({ graphql, page, createAdvancedPage }) {
   const result = await graphql(`
     {
@@ -78,16 +101,5 @@ async function createPostPages({ graphql, page, createAdvancedPage }) {
       params: { post: slug },
       defer: slug.toLowerCase().includes('defer'),
     })
-  }
-}
-
-module.exports = async (args) => {
-  switch (args.page.templateName) {
-    case 'blog.js':
-      await createFeedPages(args)
-      break
-    case 'post.js':
-      await createPostPages(args)
-      break
   }
 }

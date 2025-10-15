@@ -3,7 +3,7 @@ import { Link } from 'gatsby-plugin-advanced-pages'
 import './layout.css'
 
 const menu = [
-  { title: 'Home', route: 'home' },
+  { title: 'Home', route: '/' },
   { title: 'SSR', route: '/ssr' },
   { title: 'DSG', route: '/dsg' },
   { title: 'Auth', route: '/auth' },
