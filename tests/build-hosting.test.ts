@@ -8,7 +8,8 @@ describe('buildHosting()', () => {
         { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
         { type: 'function', path: '/ssr-deferred', functionId: 'ssr-engine', cache: true },
         { type: 'redirect', path: '/docs/*', toPath: '/docs/index', status: 200, headers: [] },
-        { type: 'redirect', path: '/old', toPath: '/new', status: 301, headers: [] },
+        { type: 'redirect', path: '/en/docs/*', toPath: '/docs/*', status: 301, headers: [] },
+        { type: 'redirect', path: '/old', toPath: '/new', status: 302, headers: [] },
         {
           type: 'redirect',
           path: '/legacy?tag=:id',
@@ -35,76 +36,106 @@ describe('buildHosting()', () => {
       pathPrefix: '',
     })
     const { config } = buildHosting(args)
-
-    expect(config.rewrites).toEqual([
-      {
-        regex: '^/ssr(?:/)?$',
-        function: { functionId: 'ssr_engine' },
-      },
-      {
-        regex: '^/ssr-deferred(?:/)?$',
-        function: { functionId: 'ssr_engine_cached' },
-      },
-      {
-        source: '/docs/**',
-        destination: '/docs/index',
-      },
-    ])
-
-    expect(config.redirects).toEqual([
-      {
-        source: '/old',
-        destination: '/new',
-        type: 301,
-      },
-    ])
-
-    expect(config.headers).toEqual([
-      {
-        source: '/static',
-        headers: [{ key: 'cache-control', value: 'public, max-age=0' }],
-      },
-    ])
-
-    expect(args.reporter.ref.warn).toHaveBeenCalledWith(
+    expect(config).toMatchSnapshot('config')
+    expect(args.gatsbyReporter.warn).toHaveBeenCalledWith(
       expect.stringContaining('contains query parameters or hash fragments'),
     )
   })
 
-  it('derives rewrite region from config overrides with fallback to defaults', () => {
-    const { config } = buildHosting(
-      createTestArgs<BuildHostingArgs>({
-        routesManifest: [
-          { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
-          { type: 'function', path: '/api', functionId: 'hello-world' },
-        ],
-        functionsMap: new Map([
-          [
-            'ssr-engine',
-            {
-              default: { deployId: 'ssr_engine', config: { region: 'asia-northeast1' } },
-              cached: { deployId: 'ssr_engine_cached', config: { region: 'europe-west1' } },
-            },
-          ],
-          [
-            'hello-world',
-            { default: { deployId: 'hello_world', config: { region: 'europe-west1' } } },
-          ],
-        ]),
-        pathPrefix: '',
-      }),
-    )
+  it('converts redirect splats and params into Firebase-compatible patterns', () => {
+    const args = createTestArgs<BuildHostingArgs>({
+      routesManifest: [
+        { type: 'redirect', path: '/old/*', toPath: '/new', status: 301, headers: [] },
+        { type: 'redirect', path: '/old/*', toPath: '/new/*', status: 302, headers: [] },
+        { type: 'redirect', path: '/old/path', toPath: '/new/path', status: 301, headers: [] },
+        {
+          type: 'redirect',
+          path: '/old/:id/profile',
+          toPath: '/new/:id/profile',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/old/:id/posts/*',
+          toPath: '/new/:id/posts/*',
+          status: 302,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/old/*/post/*',
+          toPath: '/new/*/article/*',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/old/*',
+          toPath: '/new/*/page?foo=bar#head',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/old/*',
+          toPath: '/new/*/?foo=bar#head',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/awesome/*',
+          toPath: 'https://www.awesomesite.com/docs/*',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/awesome/*',
+          toPath: 'https://www.awesomesite.com/docs/*/page?foo=bar#head',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/awesome/*/post/*',
+          toPath: 'https://www.awesomesite.com/docs/*/article/*/?from=bar#head',
+          status: 301,
+          headers: [],
+        },
+      ],
+      pathPrefix: '',
+    })
+    const { config } = buildHosting(args)
+    expect(config).toMatchSnapshot('config')
+    expect(args.gatsbyReporter.warn).not.toBeCalled()
+  })
 
-    expect(config.rewrites).toEqual([
-      {
-        regex: '^/ssr(?:/)?$',
-        function: { functionId: 'ssr_engine', region: 'asia-northeast1' },
-      },
-      {
-        regex: '^/api(?:/)?$',
-        function: { functionId: 'hello_world', region: 'europe-west1' },
-      },
-    ])
+  it('derives rewrite region from config overrides with fallback to defaults', () => {
+    const args = createTestArgs<BuildHostingArgs>({
+      routesManifest: [
+        { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
+        { type: 'function', path: '/api', functionId: 'hello-world' },
+      ],
+      functionsMap: new Map([
+        [
+          'ssr-engine',
+          {
+            default: { deployId: 'ssr_engine', config: { region: 'asia-northeast1' } },
+            cached: { deployId: 'ssr_engine_cached', config: { region: 'europe-west1' } },
+          },
+        ],
+        [
+          'hello-world',
+          { default: { deployId: 'hello_world', config: { region: 'europe-west1' } } },
+        ],
+      ]),
+      pathPrefix: '',
+    })
+    const { config } = buildHosting(args)
+    expect(config).toMatchSnapshot('config')
+    expect(args.gatsbyReporter.warn).not.toBeCalled()
   })
 
   it('warns when cached route has no cached variant', () => {
@@ -114,16 +145,36 @@ describe('buildHosting()', () => {
       pathPrefix: '',
     })
     const { config } = buildHosting(args)
-
-    expect(config.rewrites).toEqual([
-      {
-        regex: '^/dsg(?:/)?$',
-        function: { functionId: 'ssr_engine' },
-      },
-    ])
-
-    expect(args.reporter.ref.warn).toHaveBeenCalledWith(
+    expect(config).toMatchSnapshot('config')
+    expect(args.gatsbyReporter.warn).toHaveBeenCalledWith(
       expect.stringContaining('cache=true but cached variant could not be generated'),
     )
+  })
+
+  it('applies pathPrefix only to internal destinations', () => {
+    const args = createTestArgs<BuildHostingArgs>({
+      pathPrefix: '/stage',
+      routesManifest: [
+        { type: 'redirect', path: '/docs/*', toPath: '/help/*', status: 301, headers: [] },
+        { type: 'redirect', path: '/docs/static', toPath: '/landing', status: 302, headers: [] },
+        {
+          type: 'redirect',
+          path: '/docs/*',
+          toPath: 'https://external.example.com/docs/*',
+          status: 301,
+          headers: [],
+        },
+        {
+          type: 'redirect',
+          path: '/docs/*',
+          toPath: 'https://external.example.com/docs/*/page?foo=bar#head',
+          status: 301,
+          headers: [],
+        },
+      ],
+    })
+    const { config } = buildHosting(args)
+    expect(config).toMatchSnapshot('config')
+    expect(args.gatsbyReporter.warn).not.toBeCalled()
   })
 })

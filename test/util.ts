@@ -109,6 +109,7 @@ export function createTestArgs<T extends TestArgs>(
   return {
     ...(args as T),
     projectRoot,
+    gatsbyReporter,
     reporter,
     options,
   } as const

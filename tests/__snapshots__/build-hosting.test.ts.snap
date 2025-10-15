@@ -1,0 +1,188 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildHosting() > applies pathPrefix only to internal destinations > config 1`] = `
+{
+  "headers": [],
+  "public": "public",
+  "redirects": [
+    {
+      "destination": "/stage/help/:splat",
+      "source": "/stage/docs/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "/stage/landing",
+      "source": "/stage/docs/static",
+      "type": 302,
+    },
+    {
+      "destination": "https://external.example.com/docs/:splat",
+      "source": "/stage/docs/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "https://external.example.com/docs/:splat/page?foo=bar#head",
+      "source": "/stage/docs/:splat*",
+      "type": 301,
+    },
+  ],
+  "rewrites": [],
+  "target": "test-functions",
+}
+`;
+
+exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > config 1`] = `
+{
+  "headers": [
+    {
+      "headers": [
+        {
+          "key": "cache-control",
+          "value": "public, max-age=0",
+        },
+      ],
+      "source": "/static",
+    },
+  ],
+  "public": "public",
+  "redirects": [
+    {
+      "destination": "/docs/:splat",
+      "source": "/en/docs/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "/new",
+      "source": "/old",
+      "type": 302,
+    },
+  ],
+  "rewrites": [
+    {
+      "function": {
+        "functionId": "ssr_engine",
+      },
+      "regex": "^/ssr(?:/)?$",
+    },
+    {
+      "function": {
+        "functionId": "ssr_engine_cached",
+      },
+      "regex": "^/ssr-deferred(?:/)?$",
+    },
+    {
+      "destination": "/docs/index",
+      "source": "/docs/:splat*",
+    },
+  ],
+  "target": "test-functions",
+}
+`;
+
+exports[`buildHosting() > converts redirect splats and params into Firebase-compatible patterns > config 1`] = `
+{
+  "headers": [],
+  "public": "public",
+  "redirects": [
+    {
+      "destination": "/new",
+      "source": "/old/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "/new/:splat",
+      "source": "/old/:splat*",
+      "type": 302,
+    },
+    {
+      "destination": "/new/path",
+      "source": "/old/path",
+      "type": 301,
+    },
+    {
+      "destination": "/new/:id/profile",
+      "source": "/old/:id/profile",
+      "type": 301,
+    },
+    {
+      "destination": "/new/:id/posts/:splat",
+      "source": "/old/:id/posts/:splat*",
+      "type": 302,
+    },
+    {
+      "destination": "/new/:splat/article/:splat1",
+      "source": "/old/:splat*/post/:splat1*",
+      "type": 301,
+    },
+    {
+      "destination": "/new/:splat/page?foo=bar#head",
+      "source": "/old/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "/new/:splat/?foo=bar#head",
+      "source": "/old/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "https://www.awesomesite.com/docs/:splat",
+      "source": "/awesome/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "https://www.awesomesite.com/docs/:splat/page?foo=bar#head",
+      "source": "/awesome/:splat*",
+      "type": 301,
+    },
+    {
+      "destination": "https://www.awesomesite.com/docs/:splat/article/:splat1/?from=bar#head",
+      "source": "/awesome/:splat*/post/:splat1*",
+      "type": 301,
+    },
+  ],
+  "rewrites": [],
+  "target": "test-functions",
+}
+`;
+
+exports[`buildHosting() > derives rewrite region from config overrides with fallback to defaults > config 1`] = `
+{
+  "headers": [],
+  "public": "public",
+  "redirects": [],
+  "rewrites": [
+    {
+      "function": {
+        "functionId": "ssr_engine",
+        "region": "asia-northeast1",
+      },
+      "regex": "^/ssr(?:/)?$",
+    },
+    {
+      "function": {
+        "functionId": "hello_world",
+        "region": "europe-west1",
+      },
+      "regex": "^/api(?:/)?$",
+    },
+  ],
+  "target": "test-functions",
+}
+`;
+
+exports[`buildHosting() > warns when cached route has no cached variant > config 1`] = `
+{
+  "headers": [],
+  "public": "public",
+  "redirects": [],
+  "rewrites": [
+    {
+      "function": {
+        "functionId": "ssr_engine",
+      },
+      "regex": "^/dsg(?:/)?$",
+    },
+  ],
+  "target": "test-functions",
+}
+`;
