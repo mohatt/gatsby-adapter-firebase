@@ -32,7 +32,8 @@ module.exports = {
       headers: [
         {
           key: 'Link',
-          value: '</bootstrap.min.css>; rel=preload; as=style',
+          value:
+            '</bootstrap.min.css>; rel=preload; as=style, <https://www.googletagmanager.com>; rel=preconnect, <https://www.google-analytics.com>; rel=preconnect',
         },
       ],
     },
