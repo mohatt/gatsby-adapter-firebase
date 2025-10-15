@@ -83,13 +83,14 @@ const createCachedHeaders = (res: Response, contentLength: number) => {
 }
 
 // encode function id + normalized path into a stable bucket object key
-const createCacheKey = (prefix: string, req: Request) => {
+const createCacheKey = (prefix: string, req: Request, normalize = false) => {
   const path =
     (typeof req.originalUrl === 'string' && req.originalUrl) ||
     (typeof req.path === 'string' && req.path) ||
     (typeof req.url === 'string' && req.url) ||
     '/'
-  const encoded = Buffer.from(path).toString('base64url')
+  const normalized = normalize ? path.replace(/\/+$/u, '') : path
+  const encoded = Buffer.from(normalized).toString('base64url')
   return `.gatsby-adapter-firebase/${prefix}/${encoded}.bin`
 }
 
@@ -180,8 +181,11 @@ export const createCachedHandler = (
       return
     }
 
+    // Gatsby replies with 200 for both /foo and /foo/ so we need to normalize the path
+    // to prevent double cache for /foo and /foo/
+    const normalizeTrailing = meta.id === 'ssr-engine-cached'
     // `meta.version` ensures that the cache is invalidated when the function is updated
-    const cacheKey = createCacheKey(`${meta.id}/${meta.version}`, req)
+    const cacheKey = createCacheKey(`${meta.id}/${meta.version}`, req, normalizeTrailing)
     const file = bucket.file(cacheKey)
     const cached = await readCachedResponse(file)
     if (cached) {
