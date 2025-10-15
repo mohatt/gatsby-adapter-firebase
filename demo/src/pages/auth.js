@@ -43,7 +43,7 @@ const AuthenticatedContent = () => {
           <div className='card-body'>
             <h3 className='h5 text-dark mb-3'>Authenticated session details</h3>
             <p className='small text-muted'>
-              These values come straight from the Firebase client SDK.
+              These values come from the Firebase Auth SDK.
             </p>
             {loading && <span className='badge text-bg-info px-3 py-2'>Loading token...</span>}
             {error && (

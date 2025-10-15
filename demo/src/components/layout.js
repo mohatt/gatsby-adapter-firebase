@@ -14,7 +14,7 @@ const Layout = ({ title, children }) => (
   <div className='container'>
     <header className='py-3'>
       <nav className='navbar navbar-expand navbar-light bg-light rounded px-3'>
-        <Link id='avatar' className='navbar-brand' to='home' />
+        <Link id='avatar' className='navbar-brand' to='/' />
         <ul className='navbar-nav me-auto'>
           {menu.map((link) => (
             <li key={link.title} className='nav-item'>
@@ -22,7 +22,7 @@ const Layout = ({ title, children }) => (
                 activeClassName='active'
                 className='nav-link'
                 to={link.route}
-                partiallyActive={link.route !== 'home'}
+                partiallyActive
               >
                 {link.title}
               </Link>
