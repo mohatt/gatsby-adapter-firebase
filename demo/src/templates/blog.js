@@ -52,7 +52,7 @@ const BlogTemplate = ({ data, pageContext }) => {
             <div className='card-body'>
               <ul className='list-unstyled mb-0'>
                 {tags.group.map(({ fieldValue, totalCount }) => (
-                  <li key={fieldValue}>
+                  <li key={fieldValue} className='mb-2'>
                     <Link to='blog.tag' params={{ tag: fieldValue }}>
                       {fieldValue}{' '}
                       <label className='badge rounded-pill text-bg-primary'>{totalCount}</label>

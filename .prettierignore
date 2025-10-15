@@ -7,4 +7,5 @@ demo/content
 demo/public
 demo/.cache
 demo/.firebase
+demo/**/*.min.css
 demo/package-lock.json

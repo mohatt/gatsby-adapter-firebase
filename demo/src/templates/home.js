@@ -75,8 +75,8 @@ const HomeTemplate = ({ data: { site } }) => {
       title: 'Gatsby Functions',
       description: (
         <>
-          Files under <code>/src/api</code> gets bundled as Firebase HTTPS functions
-          ready for deploy.
+          Files under <code>/src/api</code> gets bundled as Firebase HTTPS functions ready for
+          deploy.
         </>
       ),
       cta: { label: 'Call /api/hello-world', href: '/api/hello-world' },
@@ -172,7 +172,7 @@ const HomeTemplate = ({ data: { site } }) => {
         <div className='row'>
           {featureCards.map((feature) => (
             <div key={feature.title} className='col-6 mb-4'>
-              <div className='card h-100 shadow-sm border-0'>
+              <div className='card h-100 shadow-sm border-0 p-2'>
                 <div className='card-body'>
                   <h3 className='h5 text-dark'>{feature.title}</h3>
                   <p className='small text-muted mb-0'>{feature.description}</p>
@@ -190,7 +190,7 @@ const HomeTemplate = ({ data: { site } }) => {
         <h2 className='h4 mb-4'>Try it yourself</h2>
         <div className='row'>
           <div className='col-lg-7 mb-4'>
-            <div className='card h-100 border-0 shadow-sm'>
+            <div className='card h-100 border-0 shadow-sm p-2'>
               <div className='card-body'>
                 <h3 className='h5 text-dark'>Build and deploy checklist</h3>
                 <p className='small text-muted'>
@@ -208,7 +208,7 @@ const HomeTemplate = ({ data: { site } }) => {
             </div>
           </div>
           <div className='col-lg-5'>
-            <div className='card border-0 shadow-sm'>
+            <div className='card border-0 shadow-sm p-2'>
               <div className='card-body'>
                 <h3 className='h5 text-dark'>API endpoint status</h3>
                 <p className='small text-muted'>
@@ -261,7 +261,7 @@ export const Head = ({ data }) => {
   return (
     <>
       <title>{title}</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name='viewport' content='width=device-width, initial-scale=1' />
       <meta name='description' content={description} />
       <meta name='robots' content='index,follow' />
       <Script id='home-head-script'>

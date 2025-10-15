@@ -39,7 +39,7 @@ const AuthenticatedContent = () => {
   return (
     <div className='row'>
       <div className='col-lg-6 mb-4'>
-        <div className='card h-100 border-0 shadow-sm'>
+        <div className='card h-100 border-0 shadow-sm p-2'>
           <div className='card-body'>
             <h3 className='h5 text-dark mb-3'>Authenticated session details</h3>
             <p className='small text-muted'>
@@ -74,7 +74,7 @@ const AuthenticatedContent = () => {
         </div>
       </div>
       <div className='col-lg-6 mb-4'>
-        <div className='card h-100 border-0 shadow-sm'>
+        <div className='card h-100 border-0 shadow-sm p-2'>
           <div className='card-body'>
             <h3 className='h5 text-dark mb-3'>Send the token to your backend</h3>
             <p className='small text-muted'>
@@ -102,7 +102,7 @@ const AuthPage = () => (
       <AuthenticatedContent />
     </AuthGuard>
     <section className='mt-2'>
-      <div className='card border-0 shadow-sm'>
+      <div className='card border-0 shadow-sm p-2'>
         <div className='card-body'>
           <ul className='small text-muted mb-0'>
             <li>Rendered as a standard Gatsby page, guarded client-side with Firebase Auth.</li>
