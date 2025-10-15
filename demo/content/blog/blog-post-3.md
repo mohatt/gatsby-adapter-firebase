@@ -1,6 +1,6 @@
 ---
-title: Blog Post 3
-slug: blog-post-3
+title: Blog Post 3 (Defer)
+slug: blog-post-3-defer
 tags:
   - tag2
   - tag3

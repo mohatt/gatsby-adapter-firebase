@@ -13,7 +13,7 @@ const menu = [
 const Layout = ({ title, children }) => (
   <div className='container'>
     <header className='py-3'>
-      <nav className='navbar navbar-expand navbar-light bg-light rounded'>
+      <nav className='navbar navbar-expand navbar-light bg-light rounded px-3'>
         <Link id='avatar' className='navbar-brand' to='home' />
         <ul className='navbar-nav me-auto'>
           {menu.map((link) => (

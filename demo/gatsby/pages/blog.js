@@ -59,6 +59,7 @@ async function createPostPages({ graphql, page, createAdvancedPage }) {
         nodes {
           frontmatter {
             slug
+            title
           }
         }
       }
@@ -71,9 +72,11 @@ async function createPostPages({ graphql, page, createAdvancedPage }) {
 
   // blog posts pages
   for (const post of result.data.allMarkdownRemark.nodes) {
+    const { slug } = post.frontmatter
     createAdvancedPage({
       route: 'blog.post',
-      params: { post: post.frontmatter.slug },
+      params: { post: slug },
+      defer: slug.toLowerCase().includes('defer'),
     })
   }
 }
