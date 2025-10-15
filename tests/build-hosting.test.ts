@@ -6,10 +6,24 @@ describe('buildHosting()', () => {
     const args = createTestArgs<BuildHostingArgs>({
       routesManifest: [
         { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
+        { type: 'function', path: '/ssr/page-data.json', functionId: 'ssr-engine' },
         { type: 'function', path: '/ssr-deferred', functionId: 'ssr-engine', cache: true },
         { type: 'redirect', path: '/docs/*', toPath: '/docs/index', status: 200, headers: [] },
         { type: 'redirect', path: '/en/docs/*', toPath: '/docs/*', status: 301, headers: [] },
-        { type: 'redirect', path: '/old', toPath: '/new', status: 302, headers: [] },
+        {
+          type: 'redirect',
+          path: '/old',
+          toPath: '/new',
+          status: 302,
+          headers: [{ key: 'test', value: 'ignored' }],
+        },
+        {
+          type: 'redirect',
+          path: '/ext',
+          toPath: 'https://www.awesomesite.com',
+          status: 200,
+          headers: [],
+        },
         {
           type: 'redirect',
           path: '/legacy?tag=:id',
@@ -37,9 +51,7 @@ describe('buildHosting()', () => {
     })
     const { config } = buildHosting(args)
     expect(config).toMatchSnapshot('config')
-    expect(args.gatsbyReporter.warn).toHaveBeenCalledWith(
-      expect.stringContaining('contains query parameters or hash fragments'),
-    )
+    expect(args.gatsbyReporter.warn.mock.calls).toMatchSnapshot('warnings')
   })
 
   it('converts redirect splats and params into Firebase-compatible patterns', () => {
@@ -146,9 +158,7 @@ describe('buildHosting()', () => {
     })
     const { config } = buildHosting(args)
     expect(config).toMatchSnapshot('config')
-    expect(args.gatsbyReporter.warn).toHaveBeenCalledWith(
-      expect.stringContaining('cache=true but cached variant could not be generated'),
-    )
+    expect(args.gatsbyReporter.warn.mock.calls).toMatchSnapshot('warnings')
   })
 
   it('applies pathPrefix only to internal destinations', () => {

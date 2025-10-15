@@ -56,6 +56,11 @@ exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > c
       "source": "/old",
       "type": 302,
     },
+    {
+      "destination": "https://www.awesomesite.com/",
+      "source": "/ext",
+      "type": 302,
+    },
   ],
   "rewrites": [
     {
@@ -63,6 +68,12 @@ exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > c
         "functionId": "ssr_engine",
       },
       "regex": "^/ssr(?:/)?$",
+    },
+    {
+      "function": {
+        "functionId": "ssr_engine",
+      },
+      "source": "/ssr/page-data.json",
     },
     {
       "function": {
@@ -77,6 +88,20 @@ exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > c
   ],
   "target": "test-functions",
 }
+`;
+
+exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > warnings 1`] = `
+[
+  [
+    "[gatsby-adaptor-firebase]: Redirect /old -> /new defines HTTP headers but Firebase Hosting redirects do not support response headers; omitting headers.",
+  ],
+  [
+    "[gatsby-adaptor-firebase]: Rewrite /ext -> https://www.awesomesite.com targets an external URL; Firebase Hosting rewrites cannot proxy to external origins. Falling back to 302 redirect.",
+  ],
+  [
+    "[gatsby-adaptor-firebase]: Redirect "/legacy?tag=:id" -> "/blog/:id" contains query parameters or hash fragments which Firebase Hosting cannot match; skipping this rule.",
+  ],
+]
 `;
 
 exports[`buildHosting() > converts redirect splats and params into Firebase-compatible patterns > config 1`] = `
@@ -185,4 +210,12 @@ exports[`buildHosting() > warns when cached route has no cached variant > config
   ],
   "target": "test-functions",
 }
+`;
+
+exports[`buildHosting() > warns when cached route has no cached variant > warnings 1`] = `
+[
+  [
+    "[gatsby-adaptor-firebase]: Function route /dsg -> "ssr-engine" is marked cache=true but cached variant could not be generated; using default deployment.",
+  ],
+]
 `;
