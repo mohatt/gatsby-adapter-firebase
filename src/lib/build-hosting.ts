@@ -55,13 +55,6 @@ const applyPathPrefix = (value: string, pathPrefix: string) => {
   return `${prefix}${value}`.replace(/\/{2,}/g, '/')
 }
 
-const normalizeSource = (value: string, pathPrefix: string) => {
-  const base = ensureLeadingSlash(value)
-  const prefixed = applyPathPrefix(base, pathPrefix)
-  // convert trailing wildcard to /:splat* for Firebase
-  return prefixed.replace(/\/\*$/u, '/:splat*') || '/'
-}
-
 interface RedirectTransformResult {
   source: string
   destination?: string
@@ -137,6 +130,19 @@ const transformRedirect = (fromPath: string, toPath?: string): RedirectTransform
   }
 }
 
+const normalizeRoutePath = (value: string, pathPrefix: string) => {
+  let base = ensureLeadingSlash(value)
+  if (base.startsWith('/static/')) {
+    // ensure no trailing slash in static asset paths since sometimes gatsby
+    // provides paths like /static/xxxx/image.png/ which is not valid
+    base = base.replace(/\/+$/u, '')
+  }
+  const prefixed = applyPathPrefix(base, pathPrefix)
+  // convert trailing wildcard to /** for Firebase
+  // usually only redirect routes contain wildcards, but just in case
+  return prefixed.replace(/\/\*$/u, '/**')
+}
+
 const routePathToOptionalSlashRegex = (path: string) => {
   if (!path || path === '/') return '^/$'
 
@@ -196,13 +202,13 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
 
   for (const route of routesManifest) {
     const [routePath, routeSuffix] = splitLocation(route.path)
-    const normalizedSource = normalizeSource(routePath, pathPrefix)
+    const source = normalizeRoutePath(routePath, pathPrefix)
 
     if (route.type === 'function') {
       const variants = functionsMap!.get(route.functionId)
       if (!variants) {
         reporter.warn(
-          `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${normalizedSource}`,
+          `Function route ${route.path} -> "${route.functionId}" has no matching function definition; skipping rewrite for ${source}`,
         )
         continue
       }
@@ -223,12 +229,12 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       const region = extractRegion(config)
       if (region) destination.region = region
       rewrites.push(
-        normalizedSource.endsWith('/page-data.json')
-          ? { source: normalizedSource, function: destination }
+        source.endsWith('/page-data.json') // account for pathPrefix
+          ? { source, function: destination }
           : {
               // Firebase is strict about trailing slashes, so we need to use regex here so
               // that function routes match both with and without a trailing slash
-              regex: routePathToOptionalSlashRegex(normalizedSource),
+              regex: routePathToOptionalSlashRegex(source),
               function: destination,
             },
       )
@@ -236,7 +242,7 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
     }
 
     if (route.type === 'static') {
-      addHeaders(normalizedSource, route.headers)
+      addHeaders(source, route.headers)
       continue
     }
 
@@ -250,7 +256,7 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
 
       if (route.toPath == null) {
         reporter.warn(
-          `Redirect ${route.path} is missing a toPath which Firebase Hosting requires; skipping.`,
+          `Redirect ${route.path} is missing a \`toPath\` which Firebase Hosting requires; skipping.`,
         )
         continue
       }
@@ -268,14 +274,14 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       const conditions = route['conditions'] as Record<string, unknown> | undefined
       if (conditions && Object.keys(conditions).length > 0) {
         reporter.warn(
-          `Redirect ${route.path} -> ${route.toPath} has conditions (${Object.keys(conditions).join(', ')}) which are not supported by Firebase Hosting; skipping rewrite for ${normalizedSource}`,
+          `Redirect ${route.path} -> ${route.toPath} has conditions (${Object.keys(conditions).join(', ')}) which are not supported by Firebase Hosting; skipping rewrite for ${source}`,
         )
         continue
       }
 
       let destination = route.toPath
       const redirect = transformRedirect(routePath, destination)
-      const source = applyPathPrefix(redirect.source, pathPrefix)
+      const redirectSource = applyPathPrefix(redirect.source, pathPrefix)
 
       if (redirect.destination) {
         destination = redirect.isExternal
@@ -288,9 +294,9 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
           reporter.warn(
             `Rewrite ${route.path} -> ${route.toPath} targets an external URL; Firebase Hosting rewrites cannot proxy to external origins. Falling back to 302 redirect.`,
           )
-          redirects.push({ source, destination, type: 302 })
+          redirects.push({ source: redirectSource, destination, type: 302 })
         } else {
-          rewrites.push({ source, destination })
+          rewrites.push({ source: redirectSource, destination })
         }
         continue
       }
@@ -303,8 +309,8 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       }
 
       redirects.push({
-        source,
         destination,
+        source: redirectSource,
         type: route.status,
       })
     }

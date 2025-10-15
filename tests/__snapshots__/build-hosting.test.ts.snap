@@ -41,7 +41,7 @@ exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > c
           "value": "public, max-age=0",
         },
       ],
-      "source": "/static",
+      "source": "/static/images/logo.png",
     },
   ],
   "public": "public",
@@ -73,7 +73,7 @@ exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > c
       "function": {
         "functionId": "ssr_engine",
       },
-      "source": "/ssr/page-data.json",
+      "source": "/page-data/ssr/page-data.json",
     },
     {
       "function": {

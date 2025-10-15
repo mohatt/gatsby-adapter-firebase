@@ -6,7 +6,7 @@ describe('buildHosting()', () => {
     const args = createTestArgs<BuildHostingArgs>({
       routesManifest: [
         { type: 'function', path: '/ssr', functionId: 'ssr-engine' },
-        { type: 'function', path: '/ssr/page-data.json', functionId: 'ssr-engine' },
+        { type: 'function', path: '/page-data/ssr/page-data.json', functionId: 'ssr-engine' },
         { type: 'function', path: '/ssr-deferred', functionId: 'ssr-engine', cache: true },
         { type: 'redirect', path: '/docs/*', toPath: '/docs/index', status: 200, headers: [] },
         { type: 'redirect', path: '/en/docs/*', toPath: '/docs/*', status: 301, headers: [] },
@@ -33,8 +33,8 @@ describe('buildHosting()', () => {
         },
         {
           type: 'static',
-          path: '/static',
-          filePath: 'public/static.html',
+          path: '/static/images/logo.png/',
+          filePath: 'public/static/images/logo.png',
           headers: [{ key: 'cache-control', value: 'public, max-age=0' }],
         },
       ],
