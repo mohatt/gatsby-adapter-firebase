@@ -5,9 +5,7 @@ import AuthGuard from '../firebase/AuthGuard'
 
 const DsgTemplate = () => (
   <Layout title='Authenticated Page'>
-    <AuthGuard>
-      test
-    </AuthGuard>
+    <AuthGuard>test</AuthGuard>
   </Layout>
 )
 

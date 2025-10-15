@@ -50,7 +50,9 @@ const AuthGuard = ({ title, children }) => {
   }
 
   const headingTitle = authStateLoading ? title : 'Login'
-  const headingMessage = authStateLoading ? 'Please wait...' : 'You must be logged in to view this page.'
+  const headingMessage = authStateLoading
+    ? 'Please wait...'
+    : 'You must be logged in to view this page.'
 
   return (
     <section className='py-4'>

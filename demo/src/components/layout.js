@@ -6,6 +6,7 @@ const menu = [
   { title: 'Home', route: 'home' },
   { title: 'SSR', route: '/ssr' },
   { title: 'DSG', route: '/dsg' },
+  { title: 'Auth', route: '/auth' },
   { title: 'Blog', route: 'blog' },
 ]
 
