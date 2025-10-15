@@ -42,10 +42,7 @@ const splitLocation = (value: string): [path: string, suffix: string] => {
   if (!value) return ['', '']
   const index = value.search(/[?#]/)
   if (index === -1) return [value, '']
-  return [
-    value.slice(0, index),
-    value.slice(index),
-  ]
+  return [value.slice(0, index), value.slice(index)]
 }
 
 const applyPathPrefix = (value: string, pathPrefix: string) => {
@@ -108,10 +105,10 @@ const transformRedirect = (fromPath: string, toPath?: string): RedirectTransform
       destinationPattern = parsed.pathname
       destinationSuffix = `${parsed.search}${parsed.hash}`
     } catch {
-      ;([destinationPattern, destinationSuffix] = splitLocation(toPath))
+      ;[destinationPattern, destinationSuffix] = splitLocation(toPath)
     }
   } else {
-    ;([destinationPattern, destinationSuffix] = splitLocation(toPath))
+    ;[destinationPattern, destinationSuffix] = splitLocation(toPath)
   }
 
   const destinationSegments = ensureLeadingSlash(destinationPattern).split('/')
@@ -140,29 +137,26 @@ const transformRedirect = (fromPath: string, toPath?: string): RedirectTransform
   }
 }
 
-const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-const sourceToRegex = (source: string) => {
-  if (!source || source === '/') return '^/$'
+const routePathToOptionalSlashRegex = (path: string) => {
+  if (!path || path === '/') return '^/$'
 
   let pattern = ''
   let i = 0
-  const len = source.length
+  const len = path.length
 
   while (i < len) {
-    const char = source[i]
-
+    const char = path[i]
     if (char === '*') {
-      if (source[i + 1] === '*') {
+      if (path[i + 1] === '*') {
         pattern += '.*' // match any depth
         i += 1
       } else {
         pattern += '[^/]*' // match one path segment
       }
     } else {
-      pattern += escapeRegex(char)
+      // escape regex
+      pattern += char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     }
-
     i += 1
   }
 
@@ -231,9 +225,12 @@ export const buildHosting = (args: BuildHostingArgs): BuildHostingResult => {
       rewrites.push(
         normalizedSource.endsWith('/page-data.json')
           ? { source: normalizedSource, function: destination }
-          : // Firebase is strict about trailing slashes, so we need to use regex here so
-            // that function routes match both with and without a trailing slash
-            { regex: sourceToRegex(normalizedSource), function: destination },
+          : {
+              // Firebase is strict about trailing slashes, so we need to use regex here so
+              // that function routes match both with and without a trailing slash
+              regex: routePathToOptionalSlashRegex(normalizedSource),
+              function: destination,
+            },
       )
       continue
     }
