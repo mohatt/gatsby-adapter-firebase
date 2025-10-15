@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.1.1...v1.2.0) (2025-10-15)
+
+
+### Bug Fixes
+
+* **hosting:** fix trailing slash issue in static asset routes ([19731ab](https://github.com/mohatt/gatsby-adapter-firebase/commit/19731ab3c2e5ea72cdf0e28cc9a5cc5eb35b9124))
+
+
+### Features
+
+* **hosting:** refactor Gatsby redirect transform logic ([fef4d12](https://github.com/mohatt/gatsby-adapter-firebase/commit/fef4d12050f45e52992ef564fb236813d490d365))
+
 ## [1.1.1](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.1.0...v1.1.1) (2025-10-14)
 
 
