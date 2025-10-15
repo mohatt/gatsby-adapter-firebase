@@ -21,12 +21,12 @@ const AuthGuard = ({ title, children }) => {
               <img
                 src={authState.photoURL}
                 alt={`Portrait of ${displayName}`}
-                className='rounded-circle border border-primary shadow-sm mr-3'
+                className='rounded-circle border border-primary shadow-sm me-3'
                 style={{ width: '3rem', height: '3rem', objectFit: 'cover' }}
               />
             )}
             <div>
-              <div className='font-weight-bold'>{displayName}</div>
+              <div className='fw-bold'>{displayName}</div>
               <button
                 type='button'
                 className='btn btn-link p-0 align-baseline text-primary'
@@ -79,7 +79,7 @@ const AuthGuard = ({ title, children }) => {
           onClick={() => signIn()}
           disabled={signInLoading}
         >
-          <span className='mr-2 font-weight-bold' aria-hidden='true'>
+          <span className='me-2 fw-bold' aria-hidden='true'>
             G
           </span>
           {signInLoading ? 'Please wait...' : 'Sign in with Google'}

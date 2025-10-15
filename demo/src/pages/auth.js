@@ -45,7 +45,7 @@ const AuthenticatedContent = () => {
             <p className='small text-muted'>
               These values come straight from the Firebase client SDK.
             </p>
-            {loading && <span className='badge badge-info px-3 py-2'>Loading token...</span>}
+            {loading && <span className='badge text-bg-info px-3 py-2'>Loading token...</span>}
             {error && (
               <div className='alert alert-danger mt-3 mb-0' role='alert'>
                 <h4 className='alert-heading'>Unable to load the ID token</h4>
@@ -55,7 +55,7 @@ const AuthenticatedContent = () => {
             {tokenDetails && (
               <dl className='row small mb-0'>
                 <dt className='col-sm-5 text-uppercase text-muted'>UID</dt>
-                <dd className='col-sm-7 text-monospace'>{tokenDetails.uid}</dd>
+                <dd className='col-sm-7 font-monospace'>{tokenDetails.uid}</dd>
                 <dt className='col-sm-5 text-uppercase text-muted'>Email</dt>
                 <dd className='col-sm-7'>{tokenDetails.email}</dd>
                 <dt className='col-sm-5 text-uppercase text-muted'>Provider</dt>

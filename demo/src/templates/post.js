@@ -12,12 +12,12 @@ const PostTemplate = ({ data: { post } }) => (
       <div>
         {post.frontmatter.tags.map((tag) => (
           <Link key={tag} to='blog.tag' params={{ tag }}>
-            <span className='badge badge-primary mr-2 p-2'>{tag}</span>
+            <span className='badge text-bg-primary me-2 p-2'>{tag}</span>
           </Link>
         ))}
       </div>
     </div>
-    <div dangerouslySetInnerHTML={{ __html: post.html }} />
+    <div dangerouslySetInnerHTML={{ __html: post.html }} style={{ maxWidth: '900px' }} />
     <div className='mt-4'>
       <Link to='blog'>← Back to all posts</Link>
     </div>

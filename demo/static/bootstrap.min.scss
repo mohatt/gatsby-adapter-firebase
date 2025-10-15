@@ -1,0 +1,6 @@
+// Bootstrap build customized for the Gatsby demo color palette.
+// $ npx sass bootstrap.min.scss bootstrap.min.css --style=compressed
+$primary: #663399;
+$link-color: $primary;
+
+@import '../node_modules/bootstrap/scss/bootstrap';

@@ -33,7 +33,7 @@ const BlogTemplate = ({ data, pageContext }) => {
           {feed.edges.map(({ node }) => (
             <div key={node.frontmatter.slug} className='card mb-4'>
               <div className='card-body'>
-                <h2 className='card-title'>{node.frontmatter.title}</h2>
+                <h3 className='card-title h4'>{node.frontmatter.title}</h3>
                 <p className='card-text'>{node.excerpt}</p>
                 <Link to='blog.post' params={{ post: node.frontmatter.slug }}>
                   Read the article →
@@ -54,7 +54,8 @@ const BlogTemplate = ({ data, pageContext }) => {
                 {tags.group.map(({ fieldValue, totalCount }) => (
                   <li key={fieldValue}>
                     <Link to='blog.tag' params={{ tag: fieldValue }}>
-                      {fieldValue} <label className='badge-pill badge-primary'>{totalCount}</label>
+                      {fieldValue}{' '}
+                      <label className='badge rounded-pill text-bg-primary'>{totalCount}</label>
                     </Link>
                   </li>
                 ))}

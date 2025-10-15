@@ -75,7 +75,7 @@ const HomeTemplate = ({ data: { site } }) => {
       title: 'Gatsby Functions',
       description: (
         <>
-          JavaScript files under <code>/src/api</code> gets bundled as Firebase HTTPS functions
+          Files under <code>/src/api</code> gets bundled as Firebase HTTPS functions
           ready for deploy.
         </>
       ),
@@ -143,17 +143,16 @@ const HomeTemplate = ({ data: { site } }) => {
   return (
     <Layout>
       <section className='mb-5'>
-        <div className='jumbotron bg-white shadow-sm p-4 p-md-5 mb-0'>
-          <h2 className='display-5 mb-3 text-dark'>
+        <div className='p-4 p-md-5 mb-0 bg-white shadow-sm rounded-3'>
+          <h2 className='display-6 mb-3 text-dark'>
             Gatsby on <span className='text-primary'>Firebase Hosting</span>
           </h2>
-          <p className='lead text-muted mb-4'>
-            {site.siteMetadata.description ||
-              'Adapter that maps Gatsby output to Firebase Hosting.'}
+          <p className='lead text-muted mb-4' style={{ maxWidth: '800px' }}>
+            {site.siteMetadata.description}
           </p>
           <div className='d-flex flex-wrap align-items-center'>
             <a
-              className='btn btn-primary mr-3 mb-2'
+              className='btn btn-primary me-3 mb-2'
               href='https://github.com/mohatt/gatsby-adapter-firebase'
             >
               View the adapter on GitHub
@@ -188,7 +187,7 @@ const HomeTemplate = ({ data: { site } }) => {
       </section>
 
       <section className='mb-2'>
-        <h2 className='h4 mb-3'>Try it yourself</h2>
+        <h2 className='h4 mb-4'>Try it yourself</h2>
         <div className='row'>
           <div className='col-lg-7 mb-4'>
             <div className='card h-100 border-0 shadow-sm'>
@@ -197,7 +196,7 @@ const HomeTemplate = ({ data: { site } }) => {
                 <p className='small text-muted'>
                   Run through these steps to test the adapter locally.
                 </p>
-                <ol className='mb-0 pl-3'>
+                <ol className='mb-0 ps-3'>
                   {quickChecks.map((item, i) => (
                     <li key={item.title} className={i !== quickChecks.length - 1 ? 'mb-2' : ''}>
                       <strong>{item.title}.</strong>{' '}
@@ -213,11 +212,11 @@ const HomeTemplate = ({ data: { site } }) => {
               <div className='card-body'>
                 <h3 className='h5 text-dark'>API endpoint status</h3>
                 <p className='small text-muted'>
-                  This request runs in the browser against the deployed Cloud Function at
-                  `/api/hello-world`.
+                  This request runs in the browser against the deployed Cloud Function at{' '}
+                  <code>/api/hello-world</code>.
                 </p>
                 {apiStatus === 'loading' && (
-                  <span className='badge badge-info px-3 py-2'>Loading response...</span>
+                  <span className='badge text-bg-info px-3 py-2'>Loading response...</span>
                 )}
                 {apiStatus === 'ready' && apiPayload && (
                   <pre className='bg-light border rounded small p-3'>
@@ -225,7 +224,7 @@ const HomeTemplate = ({ data: { site } }) => {
                   </pre>
                 )}
                 {apiStatus === 'error' && (
-                  <span className='badge badge-danger px-3 py-2'>
+                  <span className='badge text-bg-danger px-3 py-2'>
                     Unable to reach the demo function right now.
                   </span>
                 )}
@@ -262,6 +261,7 @@ export const Head = ({ data }) => {
   return (
     <>
       <title>{title}</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name='description' content={description} />
       <meta name='robots' content='index,follow' />
       <Script id='home-head-script'>

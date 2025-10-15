@@ -15,7 +15,7 @@ const DsgTemplate = () => (
         long-tail marketing pages, or product detail views. Instead of waiting for everything at
         build time, you generate pages lazily the first time a visitor needs them.
       </p>
-      <ul className='pl-3'>
+      <ul className='ps-3'>
         <li className='mb-2'>
           <strong>Config:</strong> mark the route in <code>gatsby-node.js</code> using the{' '}
           <code>defer</code> option.
