@@ -1,6 +1,6 @@
 {
   "name": "gatsby-adapter-firebase",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Gatsby adapter for Firebase",
   "keywords": [
     "gatsby",

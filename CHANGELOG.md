@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.2.0...v1.2.1) (2025-10-15)
+
+
+### Bug Fixes
+
+* **runtime:** normalize trailing slash in cache key for `ssr-engine-cached` to avoid duplication ([24e8127](https://github.com/mohatt/gatsby-adapter-firebase/commit/24e81275a96f767be8e8f28bf7cc45ada9bcdd17))
+
 # [1.2.0](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.1.1...v1.2.0) (2025-10-15)
 
 
