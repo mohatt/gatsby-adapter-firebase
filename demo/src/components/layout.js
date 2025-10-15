@@ -22,7 +22,7 @@ const Layout = ({ title, children }) => (
                 activeClassName='active'
                 className='nav-link'
                 to={link.route}
-                partiallyActive
+                partiallyActive={link.route !== '/'}
               >
                 {link.title}
               </Link>
