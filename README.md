@@ -132,7 +132,7 @@ Directory for the generated Firebase Functions workspace.
 
 #### functionsCodebase
 
-The `codebase` name placed in `firebase.json`. A matching CLI target is required for deployment.
+The `codebase` name used in `firebase.json`.
 
 #### functionsRuntime
 

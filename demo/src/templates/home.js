@@ -43,40 +43,84 @@ const HomeTemplate = ({ data: { site } }) => {
       cta: { label: 'Browse the blog', to: 'blog' },
     },
     {
-      title: 'Server-Side Rendering (SSR)',
-      description:
-        'Use getServerData to run on-demand rendering in Cloud Functions. Perfect for dashboards, authenticated content, or live data.',
-      cta: { label: 'See the SSR page', to: '/ssr' },
+      title: 'Routing',
+      description: (
+        <>
+          The adapter translates Gatsby redirects, headers, and page routes into{' '}
+          <code>firebase.json</code> so Hosting mirrors your site map.
+        </>
+      ),
+      cta: {
+        label: 'See firebase.json output',
+        href: 'https://github.com/mohatt/gatsby-adapter-firebase#firebasejson',
+      },
     },
     {
-      title: 'Gatsby Functions',
-      description:
-        'Drop JavaScript files into src/api and the adapter deploys them as callable HTTPS functions next to your site.',
-      cta: { label: 'Call /api/hello-world', href: '/api/hello-world' },
+      title: 'Server-Side Rendering (SSR)',
+      description: (
+        <>
+          Use <code>getServerData()</code> to run on-demand rendering in Cloud Functions when a
+          request arrives. Perfect for dashboards or live data.
+        </>
+      ),
+      cta: { label: 'See the SSR page', to: '/ssr' },
     },
     {
       title: 'Deferred static generation (DSG)',
       description:
-        'Ship thousands of pages without long build times. DSG content renders on the first request and is cached on Hosting.',
+        'Ship hundreds of pages without long build times. DSG content renders on the first request and is cached on Firebase Storage.',
       cta: { label: 'Open the DSG page', to: '/dsg' },
+    },
+    {
+      title: 'Gatsby Functions',
+      description: (
+        <>
+          JavaScript files under <code>/src/api</code> gets bundled as Firebase HTTPS functions
+          ready for deploy.
+        </>
+      ),
+      cta: { label: 'Call /api/hello-world', href: '/api/hello-world' },
+    },
+    {
+      title: 'Firebase Authentication',
+      description:
+        'Use Firebase Auth to authenticate users to Cloud Functions, SSR, or API routes.',
+      cta: { label: 'Open the auth page', to: '/auth' },
     },
   ]
 
   const quickChecks = [
     {
-      title: 'Inspect the Firebase-ready output',
-      description:
-        'Run `gatsby build` and the adapter creates both Hosting assets and Cloud Functions bundles with sensible defaults.',
+      title: 'Inspect the Firebase build output',
+      description: (
+        <>
+          Run <code>gatsby build</code> and the adapter writes Hosting assets and Cloud Functions
+          bundles.
+        </>
+      ),
+    },
+    {
+      title: 'Use the Firebase Emulator Suite',
+      description: (
+        <>
+          Run <code>firebase emulators:start</code> to test your project locally before deploying.
+        </>
+      ),
     },
     {
       title: 'Deploy with Firebase CLI',
-      description:
-        'Use `firebase deploy` to push Hosting content, SSR functions, and API endpoints in one command.',
+      description: (
+        <>
+          Run <code>firebase deploy</code> to publish Hosting files, SSR functions, and API
+          endpoints.
+        </>
+      ),
     },
     {
-      title: 'Preview changes safely',
-      description:
-        'Firebase Hosting preview channels let you preview pull requests without touching production.',
+      title: 'Preview changes',
+      description: (
+        <>Firebase Hosting preview channels let you preview updates before production.</>
+      ),
     },
   ]
 
@@ -101,9 +145,12 @@ const HomeTemplate = ({ data: { site } }) => {
       <section className='mb-5'>
         <div className='jumbotron bg-white shadow-sm p-4 p-md-5 mb-0'>
           <h2 className='display-5 mb-3 text-dark'>
-            Deploy <span className='text-primary'>Gatsby</span> to Firebase with ease
+            Gatsby on <span className='text-primary'>Firebase Hosting</span>
           </h2>
-          <p className='lead text-muted mb-4'>{site.siteMetadata.description}</p>
+          <p className='lead text-muted mb-4'>
+            {site.siteMetadata.description ||
+              'Adapter that maps Gatsby output to Firebase Hosting.'}
+          </p>
           <div className='d-flex flex-wrap align-items-center'>
             <a
               className='btn btn-primary mr-3 mb-2'
@@ -115,7 +162,7 @@ const HomeTemplate = ({ data: { site } }) => {
               className='btn btn-outline-secondary mb-2'
               href='https://firebase.google.com/docs/hosting'
             >
-              Learn about Firebase Hosting
+              Firebase Hosting docs
             </a>
           </div>
         </div>
@@ -146,25 +193,17 @@ const HomeTemplate = ({ data: { site } }) => {
           <div className='col-lg-7 mb-4'>
             <div className='card h-100 border-0 shadow-sm'>
               <div className='card-body'>
-                <h3 className='h5 text-dark'>A typical launch flow</h3>
+                <h3 className='h5 text-dark'>Build and deploy checklist</h3>
                 <p className='small text-muted'>
-                  Run through these steps to take the adapter for a spin in your own Firebase
-                  project.
+                  Run through these steps to test the adapter locally.
                 </p>
                 <ol className='mb-0 pl-3'>
-                  {quickChecks.map((item) => (
-                    <li key={item.title} className='mb-2'>
+                  {quickChecks.map((item, i) => (
+                    <li key={item.title} className={i !== quickChecks.length - 1 ? 'mb-2' : ''}>
                       <strong>{item.title}.</strong>{' '}
                       <span className='text-muted'>{item.description}</span>
                     </li>
                   ))}
-                  <li className='mb-0'>
-                    <strong>Observe live routes.</strong>{' '}
-                    <span className='text-muted'>
-                      Visit `/ssr` for server rendering, `/about-defer` for DSG, or call an API
-                      under `/api/*`.
-                    </span>
-                  </li>
                 </ol>
               </div>
             </div>
@@ -178,7 +217,7 @@ const HomeTemplate = ({ data: { site } }) => {
                   `/api/hello-world`.
                 </p>
                 {apiStatus === 'loading' && (
-                  <span className='badge badge-info px-3 py-2'>Loading response…</span>
+                  <span className='badge badge-info px-3 py-2'>Loading response...</span>
                 )}
                 {apiStatus === 'ready' && apiPayload && (
                   <pre className='bg-light border rounded small p-3'>

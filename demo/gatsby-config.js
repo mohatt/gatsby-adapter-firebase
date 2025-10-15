@@ -28,6 +28,15 @@ module.exports = {
   ],
   headers: [
     {
+      source: '/*',
+      headers: [
+        {
+          key: 'Link',
+          value: '</bootstrap.min.css>; rel=preload; as=style',
+        },
+      ],
+    },
+    {
       source: `/blog/*`,
       headers: [
         {

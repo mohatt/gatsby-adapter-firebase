@@ -22,13 +22,13 @@ const BlogTemplate = ({ data, pageContext }) => {
 
   return (
     <Layout title={title}>
-      <div>
-        <p>
-          These posts are sourced from Markdown files in <code>content/blog</code>, transformed at
-          build time, and deployed as static HTML.
+      <section className='mb-4'>
+        <p className='lead'>
+          These posts are sourced from Markdown files under <code>content/blog</code>, transformed
+          at build time.
         </p>
-      </div>
-      <div className='row'>
+      </section>
+      <section className='row'>
         <div className='col-md-9'>
           {feed.edges.map(({ node }) => (
             <div key={node.frontmatter.slug} className='card mb-4'>
@@ -62,7 +62,7 @@ const BlogTemplate = ({ data, pageContext }) => {
             </div>
           </div>
         </div>
-      </div>
+      </section>
       <Pagination route={route} params={params} pageInfo={feed.pageInfo} ui='simple' />
     </Layout>
   )

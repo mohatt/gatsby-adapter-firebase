@@ -33,14 +33,14 @@ const AuthGuard = ({ title, children }) => {
                 onClick={() => signOut()}
                 disabled={signOutLoading}
               >
-                {signOutLoading ? 'Signing out...' : 'Logout'}
+                {signOutLoading ? 'Signing out...' : 'Sign out'}
               </button>
             </div>
           </div>
         </div>
         {signOutError && (
           <div className='alert alert-danger' role='alert'>
-            <h4 className='alert-heading'>Logout Failed</h4>
+            <h4 className='alert-heading'>Sign out Failed</h4>
             <p className='mb-0'>{signOutError.message}</p>
           </div>
         )}
@@ -49,10 +49,10 @@ const AuthGuard = ({ title, children }) => {
     )
   }
 
-  const headingTitle = authStateLoading ? title : 'Login'
+  const headingTitle = authStateLoading ? title : 'Sign in'
   const headingMessage = authStateLoading
     ? 'Please wait...'
-    : 'You must be logged in to view this page.'
+    : 'You must be signed in to view this page.'
 
   return (
     <section className='py-4'>
@@ -82,7 +82,7 @@ const AuthGuard = ({ title, children }) => {
           <span className='mr-2 font-weight-bold' aria-hidden='true'>
             G
           </span>
-          {signInLoading ? 'Please wait...' : 'Login with Google'}
+          {signInLoading ? 'Please wait...' : 'Sign in with Google'}
         </button>
       )}
     </section>
