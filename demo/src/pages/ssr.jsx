@@ -17,23 +17,22 @@ const SSR = ({ serverData }) => {
 
   return (
     <PageLayout title='Server-side Rendering (SSR)'>
-      <p className='lead'>
+      <p className='lead content'>
         Every visit to this page triggers <code>getServerData()</code>. Gatsby Firebase adapter
         executes that handler in a Cloud Function, fetches fresh data from{' '}
         <a href='https://dog.ceo/dog-api/'>Dog CEO</a>, and streams the HTML response back through
         Firebase Hosting.
       </p>
-      <div className='card border-0 mb-4 shadow-sm w-75'>
+      <div className='card border-0 mb-4 shadow-sm content'>
         <pre className='m-2 p-3'>
           <code>{JSON.stringify(serverData, null, 2)}</code>
         </pre>
       </div>
-      <div className='card border-0 shadow-sm w-50'>
+      <div className='card border-0 shadow-sm content'>
         <img
           alt='Happy dog sourced at request time'
           src={serverData.dogUrl}
-          className='card-img-top'
-          width='500'
+          className='card-img-top content'
         />
         <div className='card-body'>
           <p className='mb-1'>Rendered at: {fetchedAt}</p>

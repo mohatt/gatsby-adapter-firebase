@@ -147,9 +147,7 @@ const Index = ({ data: { site } }) => {
           <h2 className='display-6 mb-3 text-dark'>
             Gatsby on <span className='text-primary'>Firebase Hosting</span>
           </h2>
-          <p className='lead text-muted mb-4' style={{ maxWidth: '800px' }}>
-            {site.siteMetadata.description}
-          </p>
+          <p className='lead content text-muted mb-4'>{site.siteMetadata.description}</p>
           <div className='d-flex flex-wrap align-items-center'>
             <a
               className='btn btn-primary me-3 mb-2'

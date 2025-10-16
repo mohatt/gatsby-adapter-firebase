@@ -6,7 +6,11 @@ const Post = ({ data: { post } }) => (
   <PageLayout title={post.frontmatter.title}>
     <div className='mb-4 text-muted'>
       <p className='lead'>
-        Generated from Markdown during the Gatsby build and served as a static page.
+        Generated from Markdown{' '}
+        {post.frontmatter.slug.toLowerCase().includes('defer')
+          ? 'on demand using DSG'
+          : 'during Gatsby build'}{' '}
+        and served as a static page.
       </p>
       <div>
         {post.frontmatter.tags.map((tag) => (
@@ -16,7 +20,7 @@ const Post = ({ data: { post } }) => (
         ))}
       </div>
     </div>
-    <div dangerouslySetInnerHTML={{ __html: post.html }} style={{ maxWidth: '900px' }} />
+    <div dangerouslySetInnerHTML={{ __html: post.html }} className='content' />
     <div className='mt-4'>
       <Link to='blog'>← Back to all posts</Link>
     </div>

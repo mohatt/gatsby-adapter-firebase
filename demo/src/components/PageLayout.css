@@ -8,3 +8,7 @@
   background-position: center;
   background-repeat: no-repeat;
 }
+
+.content {
+  max-width: 800px;
+}

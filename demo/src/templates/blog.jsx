@@ -22,25 +22,28 @@ const Blog = ({ data, pageContext }) => {
   return (
     <PageLayout title={title}>
       <section className='mb-4'>
-        <p className='lead'>
-          These posts are sourced from Markdown files under <code>content/blog</code>, transformed
-          at build time.
+        <p className='lead content'>
+          These posts are sourced from Markdown files under <code>content/blog</code>, rendered to
+          static HTML at build time or on demand using Deferred Static Generation (DSG).
         </p>
       </section>
       <section className='row'>
         <div className='col-md-9'>
-          {feed.edges.map(({ node }) => (
-            <div key={node.frontmatter.slug} className='card mb-4'>
+          {feed.edges.map(({ post }) => (
+            <div key={post.frontmatter.slug} className='card mb-4'>
               <div className='card-body'>
-                <h3 className='card-title h4'>{node.frontmatter.title}</h3>
-                <p className='card-text'>{node.excerpt}</p>
-                <Link to='blog.post' params={{ post: node.frontmatter.slug }}>
+                <h3 className='card-title h4'>{post.frontmatter.title}</h3>
+                <p className='card-text'>{post.excerpt}</p>
+                <Link to='blog.post' params={{ post: post.frontmatter.slug }}>
                   Read the article →
                 </Link>
               </div>
               <div className='card-footer text-muted'>
-                Served as static HTML • Tags:{' '}
-                {node.frontmatter.tags ? node.frontmatter.tags.join(', ') : 'none'}
+                Rendering:{' '}
+                {post.frontmatter.slug.toLowerCase().includes('defer')
+                  ? 'on demand'
+                  : 'at build time'}{' '}
+                • Tags: {post.frontmatter.tags ? post.frontmatter.tags.join(', ') : 'none'}
               </div>
             </div>
           ))}
@@ -75,9 +78,14 @@ export const query = graphql`
     page(id: { eq: $id }) {
       title
     }
-    feed: allMarkdownRemark(limit: $limit, skip: $offset, filter: $filter) {
+    feed: allMarkdownRemark(
+      limit: $limit
+      skip: $offset
+      filter: $filter
+      sort: [{ frontmatter: { title: ASC } }]
+    ) {
       edges {
-        node {
+        post: node {
           excerpt(pruneLength: 200)
           frontmatter {
             title

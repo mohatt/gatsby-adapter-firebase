@@ -4,12 +4,12 @@ import { PageHead, PageLayout } from '../components'
 const DSG = () => (
   <PageLayout title='Deferred Static Generation (DSG)'>
     <div>
-      <p className='lead'>
+      <p className='lead content'>
         This page opts into Gatsby&apos;s Deferred Static Generation (DSG). When you hit it for the
         first time, it renders on demand with Cloud Functions, caches the result to Firebase
         Storage, and serves the cached HTML on subsequent visits.
       </p>
-      <p>
+      <p className='content'>
         DSG is ideal when you have a large collection of pages that rarely change: docs, catalogs,
         long-tail marketing pages, or product detail views. Instead of waiting for everything at
         build time, you generate pages lazily the first time a visitor needs them.
