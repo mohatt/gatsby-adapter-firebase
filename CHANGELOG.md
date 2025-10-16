@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.3.0...v1.4.0) (2025-10-16)
+
+
+### Features
+
+* **runtime:** add `storageBucket` option for cached responses ([dfbad17](https://github.com/mohatt/gatsby-adapter-firebase/commit/dfbad17871e686a013e4af4841471b2ddb8343db))
+
+
+### Performance Improvements
+
+* **runtime:** omit `file.exists()` api call to speed up `readCachedResponse` ([429423d](https://github.com/mohatt/gatsby-adapter-firebase/commit/429423d9eed98f460100f0e803a26d727e35517b))
+
 # [1.3.0](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.2.1...v1.3.0) (2025-10-16)
 
 
