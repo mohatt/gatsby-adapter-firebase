@@ -3,7 +3,7 @@ const advancedPages = require('./advanced-pages')
 
 /** @type {import('gatsby').GatsbyConfig} */
 module.exports = {
-  adapter: adapter(),
+  adapter: adapter({ functionsRuntime: 'nodejs22' }),
   plugins: [
     {
       resolve: `gatsby-source-filesystem`,
