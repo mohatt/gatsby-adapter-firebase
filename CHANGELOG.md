@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.2.1...v1.3.0) (2025-10-16)
+
+
+### Features
+
+* **runtime:** add version metadata to cache entries to skip stale responses ([bb92801](https://github.com/mohatt/gatsby-adapter-firebase/commit/bb9280146e3950cc2810153bbec7fea97f6cfea8))
+
+
+### Performance Improvements
+
+* **runtime:** introduce `CacheManager` to encapsulate bucket and cache operations for each handler separately ([138d954](https://github.com/mohatt/gatsby-adapter-firebase/commit/138d954ef287a8f371395eb60f0772c6d73e8336))
+
 ## [1.2.1](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.2.0...v1.2.1) (2025-10-15)
 
 
