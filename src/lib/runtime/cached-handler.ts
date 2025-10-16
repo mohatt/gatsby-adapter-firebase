@@ -1,6 +1,6 @@
 import { logger } from 'firebase-functions/v2'
 import { getStorage } from 'firebase-admin/storage'
-import type { Bucket, File } from '@google-cloud/storage'
+import type { Bucket } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, FunctionMetadata, Request, Response } from './types.js'
 import { getDefaultFirebaseApp, prepareRequest } from './utils.js'
@@ -36,25 +36,6 @@ const EXCLUDED_CACHE_HEADER_NAMES = [
   'x-gatsby-firebase-cache', // internal metadata
 ]
 
-let cachedBucket: Bucket | undefined
-
-// lazily resolve and memoize the default storage bucket; cache null if initialization fails
-const getBucket = async (): Promise<Bucket | undefined> => {
-  if (cachedBucket) return cachedBucket
-  try {
-    const app = getDefaultFirebaseApp()
-    const bucket = getStorage(app).bucket()
-    const [exists] = await bucket.exists()
-    if (!exists) {
-      throw new Error(`Storage bucket ${bucket.name} does not exist`)
-    }
-    cachedBucket = bucket as unknown as Bucket
-  } catch (error) {
-    logger.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
-  }
-  return cachedBucket
-}
-
 // convert any express chunk shape into a Buffer so we can concatenate responses safely
 const toBuffer = (chunk: unknown, encoding?: unknown): Buffer | null => {
   if (chunk == null) return null
@@ -82,67 +63,99 @@ const createCachedHeaders = (res: Response, contentLength: number) => {
   return headers
 }
 
-// encode function id + normalized path into a stable bucket object key
-const createCacheKey = (prefix: string, req: Request, normalize = false) => {
-  const path =
-    (typeof req.originalUrl === 'string' && req.originalUrl) ||
-    (typeof req.path === 'string' && req.path) ||
-    (typeof req.url === 'string' && req.url) ||
-    '/'
-  const normalized = normalize ? path.replace(/\/+$/u, '') : path
-  const encoded = Buffer.from(normalized).toString('base64url')
-  return `.gatsby-adapter-firebase/${prefix}/${encoded}.bin`
-}
-
 interface CachedResponse {
   metadata: CachedResponseMetadata
   body: Buffer
 }
 
-// read the cached response file and extract metadata and body
-const readCachedResponse = async (file: File): Promise<CachedResponse | null> => {
-  try {
-    const [exists] = await file.exists()
-    if (!exists) return null
-    const [downloaded] = await file.download({ validation: false })
-    const newlineIndex = downloaded.indexOf(0x0a) // '\n'
-    if (newlineIndex === -1) {
-      throw new Error(`Missing metadata delimiter`)
-    }
-    const metadata: CachedResponseMetadata = JSON.parse(
-      downloaded.subarray(0, newlineIndex).toString('utf8'),
-    )
-    if (!metadata || typeof metadata.status !== 'number' || !Array.isArray(metadata.headers)) {
-      throw new Error(`Invalid metadata`)
-    }
-    const body = downloaded.subarray(newlineIndex + 1)
-    return { metadata, body }
-  } catch (error) {
-    logger.error(
-      `[gatsby-adapter-firebase] Failed to read cached response for ${file.name}:`,
-      error,
-    )
-  }
-  return null
-}
+class CacheManager {
+  private bucketPromise?: Promise<Bucket | null>
 
-// persist the captured payload for future hits
-const writeCachedResponse = async (file: File, metadata: CachedResponseMetadata, body: Buffer) => {
-  try {
-    const header = `${JSON.stringify(metadata)}\n`
-    const data = Buffer.concat([Buffer.from(header, 'utf8'), body])
-    await file.save(data, {
-      resumable: false,
-      metadata: {
-        contentType: 'application/octet-stream',
-        metadata: { headerLength: header.length },
-      },
-    })
-  } catch (error) {
-    logger.error(
-      `[gatsby-adapter-firebase] Failed to write cached response for ${file.name}:`,
-      error,
-    )
+  constructor(private readonly meta: Pick<FunctionMetadata, 'id' | 'version'>) {}
+
+  private async resolveBucket(): Promise<Bucket | null> {
+    try {
+      const app = getDefaultFirebaseApp()
+      const bucket = getStorage(app).bucket()
+      const [exists] = await bucket.exists()
+      if (!exists) {
+        throw new Error(`Storage bucket ${bucket.name} does not exist`)
+      }
+      return bucket as unknown as Bucket
+    } catch (error) {
+      logger.error(`[gatsby-adapter-firebase] Failed to initialize Firebase Storage:`, error)
+      return null
+    }
+  }
+
+  async getBucket(): Promise<Bucket | null> {
+    if (!this.bucketPromise) {
+      this.bucketPromise = this.resolveBucket().then((bucket) => {
+        if (!bucket) {
+          this.bucketPromise = undefined
+        }
+        return bucket
+      })
+    }
+    return this.bucketPromise
+  }
+
+  // encode function id + normalized path into a stable bucket object key
+  createCacheKey(req: Request, normalizeTrailing: boolean) {
+    const path =
+      (typeof req.originalUrl === 'string' && req.originalUrl) ||
+      (typeof req.path === 'string' && req.path) ||
+      (typeof req.url === 'string' && req.url) ||
+      '/'
+    const normalized = normalizeTrailing ? path.replace(/\/+$/u, '') : path
+    const encoded = Buffer.from(normalized).toString('base64url')
+    // `meta.version` ensures that the cache is invalidated when the function is updated
+    return `.gatsby-adapter-firebase/${this.meta.id}/${this.meta.version}/${encoded}.bin`
+  }
+
+  async readResponse(key: string): Promise<CachedResponse | null> {
+    const bucket = await this.getBucket()
+    if (!bucket) return null
+    try {
+      const file = bucket.file(key)
+      const [exists] = await file.exists()
+      if (!exists) return null
+      const [downloaded] = await file.download({ validation: false })
+      const newlineIndex = downloaded.indexOf(0x0a) // '\n'
+      if (newlineIndex === -1) {
+        throw new Error(`Missing metadata delimiter`)
+      }
+      const metadata: CachedResponseMetadata = JSON.parse(
+        downloaded.subarray(0, newlineIndex).toString('utf8'),
+      )
+      if (!metadata || typeof metadata.status !== 'number' || !Array.isArray(metadata.headers)) {
+        throw new Error(`Invalid metadata`)
+      }
+      const body = downloaded.subarray(newlineIndex + 1)
+      return { metadata, body }
+    } catch (error) {
+      logger.error(`[gatsby-adapter-firebase] Failed to read cached response for ${key}:`, error)
+    }
+    return null
+  }
+
+  async writeResponse(key: string, metadata: CachedResponseMetadata, body: Buffer) {
+    const bucket = await this.getBucket()
+    if (!bucket) return
+    try {
+      const file = bucket.file(key)
+      const header = `${JSON.stringify(metadata)}\n`
+      const data = Buffer.concat([Buffer.from(header, 'utf8'), body])
+      await file.save(data, {
+        resumable: false,
+        metadata: {
+          contentType: 'application/octet-stream',
+          metadata: { headerLength: header.length },
+        },
+      })
+    } catch (error) {
+      logger.error(`[gatsby-adapter-firebase] Failed to write cached response for ${key}:`, error)
+    }
   }
 }
 
@@ -160,6 +173,9 @@ export const createCachedHandler = (
   handler: FunctionHandler,
   meta: Pick<FunctionMetadata, 'id' | 'version'>,
 ): FunctionHandler => {
+  // create a new instance of CacheManager for each handler
+  const cacheManager = new CacheManager(meta)
+
   return async (originalReq, res) => {
     const method = (originalReq.method?.toUpperCase() as AllowedMethod) ?? 'GET'
     if (!ALLOWED_METHODS.includes(method)) {
@@ -171,7 +187,7 @@ export const createCachedHandler = (
     }
 
     const req = prepareRequest(originalReq, true)
-    const bucket = await getBucket()
+    const bucket = await cacheManager.getBucket()
     if (!bucket) {
       res.set(CACHE_METADATA_HEADER, CACHE_PASS_VALUE)
       if (!res.hasHeader('cache-control')) {
@@ -184,10 +200,8 @@ export const createCachedHandler = (
     // Gatsby replies with 200 for both /foo and /foo/ so we need to normalize the path
     // to prevent double cache for /foo and /foo/
     const normalizeTrailing = meta.id === 'ssr-engine-cached'
-    // `meta.version` ensures that the cache is invalidated when the function is updated
-    const cacheKey = createCacheKey(`${meta.id}/${meta.version}`, req, normalizeTrailing)
-    const file = bucket.file(cacheKey)
-    const cached = await readCachedResponse(file)
+    const cacheKey = cacheManager.createCacheKey(req, normalizeTrailing)
+    const cached = await cacheManager.readResponse(cacheKey)
     if (cached) {
       // apply cached headers to the response
       for (const header of cached.metadata.headers) {
@@ -293,7 +307,7 @@ export const createCachedHandler = (
         headers: createCachedHeaders(res, totalLength),
       }
 
-      void writeCachedResponse(file, metadata, body)
+      void cacheManager.writeResponse(cacheKey, metadata, body)
     }
 
     const onFinish = () => {
