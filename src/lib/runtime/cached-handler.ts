@@ -72,12 +72,12 @@ interface CachedResponse {
 class CacheManager {
   private bucketPromise?: Promise<Bucket | null>
 
-  constructor(private readonly meta: Pick<FunctionMetadata, 'id' | 'version'>) {}
+  constructor(private readonly meta: Pick<FunctionMetadata, 'id' | 'version' | 'storageBucket'>) {}
 
   private async resolveBucket(): Promise<Bucket | null> {
     try {
       const app = getDefaultFirebaseApp()
-      const bucket = getStorage(app).bucket()
+      const bucket = getStorage(app).bucket(this.meta.storageBucket)
       const [exists] = await bucket.exists()
       if (!exists) {
         throw new Error(`Storage bucket ${bucket.name} does not exist`)
@@ -177,7 +177,7 @@ const isCacheableStatus = (statusCode: number) =>
 // wrap the original handler with Firebase Storage backed response caching
 export const createCachedHandler = (
   handler: FunctionHandler,
-  meta: Pick<FunctionMetadata, 'id' | 'version'>,
+  meta: Pick<FunctionMetadata, 'id' | 'version' | 'storageBucket'>,
 ): FunctionHandler => {
   // create a new instance of CacheManager for each handler
   const cacheManager = new CacheManager(meta)

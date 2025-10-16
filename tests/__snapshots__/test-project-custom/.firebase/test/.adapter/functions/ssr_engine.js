@@ -7,9 +7,13 @@ const METADATA = {
   "generator": "gatsby-adapter-firebase",
   "id": "ssr-engine",
   "name": "SSR",
-  "version": "dbddfdd9f69dfa72c82263182ff1d4ad50993e212b46cb3ed303d4b55568b295"
+  "storageBucket": "test-project.appspot.com",
+  "version": "f28ad437b47b9f49b28445a02d3fdb7e0341cbfa22db2a875dcc429dab425226"
 }
 const CONFIG = {
+  "labels": {
+    "custom": "custom-label"
+  },
   "region": "asia-northeast1",
   "timeoutSeconds": 120
 }

@@ -29,6 +29,7 @@ const testCases: TestCase[] = [
           concurrency: 10,
         },
       },
+      storageBucket: 'test-project.appspot.com',
       excludeDatastoreFromEngineFunction: true,
     },
   },
@@ -46,10 +47,11 @@ const testCases: TestCase[] = [
       functionsCodebase: ['invalid'],
       functionsRuntime: {},
       functionsConfig: 'invalid',
-      excludeDatastoreFromEngineFunction: 'notBoolean',
       functionsConfigOverride: {
         'ssr-engine': 'invalid',
       },
+      storageBucket: [123],
+      excludeDatastoreFromEngineFunction: 'notBoolean',
     },
   },
   {
@@ -59,6 +61,7 @@ const testCases: TestCase[] = [
       functionsOutDir: '',
       functionsCodebase: '',
       functionsRuntime: '',
+      storageBucket: '',
     },
   },
   {

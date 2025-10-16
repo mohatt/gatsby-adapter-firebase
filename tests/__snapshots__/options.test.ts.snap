@@ -35,6 +35,7 @@ exports[`options > 'accepts valid options' > result 1`] = `
     "functionsOutDir": "custom/functions",
     "functionsRuntime": "node22",
     "hostingTarget": "custom",
+    "storageBucket": "test-project.appspot.com",
   },
   "warnings": undefined,
 }
@@ -47,6 +48,7 @@ exports[`options > 'rejects empty options' > result 1`] = `
     ""functionsOutDir" is not allowed to be empty",
     ""functionsCodebase" is not allowed to be empty",
     ""functionsRuntime" is not allowed to be empty",
+    ""storageBucket" is not allowed to be empty",
   ],
 }
 `;
@@ -68,6 +70,7 @@ exports[`options > 'rejects invalid options' > result 1`] = `
     ""functionsOutDir" must be a string",
     ""functionsCodebase" must be a string",
     ""functionsRuntime" must be a string",
+    ""storageBucket" must be a string",
     ""excludeDatastoreFromEngineFunction" must be a boolean",
   ],
 }

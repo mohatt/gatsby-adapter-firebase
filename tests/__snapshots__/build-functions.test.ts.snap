@@ -2,8 +2,16 @@
 
 exports[`buildFunctions() > builds test-project correctly > firebase.json 1`] = `
 {
-  "codebase": "test-hosting",
-  "runtime": "node20",
+  "codebase": "gatsby",
+  "runtime": "nodejs20",
+  "source": ".firebase/functions",
+}
+`;
+
+exports[`buildFunctions() > builds test-project with custom options > firebase.json 1`] = `
+{
+  "codebase": "test-functions",
+  "runtime": "node22",
   "source": ".firebase/test",
 }
 `;

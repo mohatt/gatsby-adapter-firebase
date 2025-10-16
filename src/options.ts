@@ -51,6 +51,11 @@ export const getOptionsSchema = (joi: PluginOptionsSchemaJoi) => {
         .string()
         .description('Runtime identifier (e.g. nodejs20) used for generated Firebase functions')
         .default('nodejs20'),
+      storageBucket: joi
+        .string()
+        .description(
+          'Cloud Storage bucket name used for cached responses (defaults to project bucket)',
+        ),
       excludeDatastoreFromEngineFunction: joi
         .boolean()
         .description('Skip bundling Gatsby LMDB datastore in the functions used for SSR/DSG')

@@ -18,6 +18,7 @@ export interface FunctionMetadata {
   name: string
   version: string
   generator: string
+  storageBucket?: string
 }
 
 export type FunctionModule =

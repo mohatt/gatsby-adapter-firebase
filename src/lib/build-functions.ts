@@ -27,6 +27,7 @@ export interface BuildFunctionsOptions {
   functionsRuntime: string
   functionsConfig?: FunctionConfig
   functionsConfigOverride?: Record<string, FunctionConfig>
+  storageBucket?: string
 }
 
 export interface BuildFunctionsArgs {
@@ -109,6 +110,7 @@ export const buildFunctions = async (
       functionsOutDir,
       functionsConfig,
       functionsConfigOverride = {},
+      storageBucket,
     },
   } = args
 
@@ -193,6 +195,7 @@ export const buildFunctions = async (
         id,
         name: name === 'SSR & DSG' ? (kind == 'cached' ? 'DSG' : 'SSR') : name,
         generator: 'gatsby-adapter-firebase',
+        storageBucket,
         // placeholder till we generate function version hash
         version: 'build',
       },

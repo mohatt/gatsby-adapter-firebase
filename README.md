@@ -112,6 +112,7 @@ adapter: firebaseAdapter({
   functionsOutDir: '.firebase/functions',
   functionsCodebase: 'gatsby',
   functionsRuntime: 'nodejs20',
+  storageBucket: 'my-project.appspot.com',
   functionsConfig: { region: 'us-central1' },
   functionsConfigOverride: { 'ssr-engine': { memory: '512MiB' } },
   excludeDatastoreFromEngineFunction: false,
@@ -138,6 +139,10 @@ The `codebase` name used in `firebase.json`.
 
 Runtime string passed to Firebase (for example `nodejs20`).
 
+#### storageBucket
+
+Overrides the Firebase Storage bucket used for DSG caching. Leave unset to use the project’s default bucket.
+
 #### functionsConfig
 
 Default HTTPS options applied to every generated function.
@@ -160,7 +165,7 @@ The adapter supports **Deferred Static Generation (DSG)** by automatically creat
 ### Key characteristics
 
 - They accept only `GET` and `HEAD` requests.
-- They use the default Firebase Storage bucket to store caches under `.gatsby-adapter-firebase/<functionId>/<functionVersion>`.
+- They use the default Firebase Storage bucket (unless overridden with `storageBucket`) to store caches under `.gatsby-adapter-firebase/<functionId>`.
 - If Storage is unreachable for any reason, the request falls back to the uncached handler and returns `X-Gatsby-Firebase-Cache: PASS`.
 - They use the request’s URL path to determine whether to create a new cache object or reuse an existing one.
 - On a miss, the underlying Gatsby handler runs. The proxy records outgoing chunks for `GET` requests only.
@@ -173,7 +178,7 @@ The handler always sets `cache-control` unless the function already provided one
 - Non-cacheable responses get `no-store`.
 - Unsupported methods respond with `405 Method Not Allowed` and `cache-control: no-store`.
 
-Cache keys are per function version and URL path, so changing the Gatsby function code automatically invalidates the cache on the next deployment.
+Each cached response carries the function version in its metadata, so older entries become stale automatically after deploying updated code.
 
 ## Local workflows
 
