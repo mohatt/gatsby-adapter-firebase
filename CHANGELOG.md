@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.4.0...v1.4.1) (2025-10-16)
+
+
+### Bug Fixes
+
+* **build:** fix minor build issue in `functionsPlatform` ([21791b9](https://github.com/mohatt/gatsby-adapter-firebase/commit/21791b9c5a9ae8b1fa1357ae573c32e54987b6e4))
+
 # [1.4.0](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.3.0...v1.4.0) (2025-10-16)
 
 
