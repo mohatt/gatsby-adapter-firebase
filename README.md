@@ -21,6 +21,7 @@ This [adapter](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/ada
 - [Adapter options](#adapter-options)
 - [DSG and SSR functions](#dsg-functions)
 - [Local workflows](#local-workflows)
+- [Limitations](#limitations)
 - [License](#license)
 
 ## Installation
@@ -112,9 +113,9 @@ adapter: firebaseAdapter({
   functionsOutDir: '.firebase/functions',
   functionsCodebase: 'gatsby',
   functionsRuntime: 'nodejs20',
-  storageBucket: 'my-project.appspot.com',
   functionsConfig: { region: 'us-central1' },
   functionsConfigOverride: { 'ssr-engine': { memory: '512MiB' } },
+  storageBucket: 'my-project.appspot.com',
   excludeDatastoreFromEngineFunction: false,
 })
 ```
@@ -207,6 +208,26 @@ If you are using DSG, you will need Firebase Storage emulator to be enabled in y
     }
   }
 }
+```
+
+## Limitations
+
+At the moment, the adapter has limited support for these features:
+
+### SSR and DSG (local images/files not working)
+
+If you have a query that pulls in a local image or file into your page component, the adapter will not be able to resolve it during SSR or DSG. This is because the adapter doesn't receive those files during `gatsby build` as part of Gatsby's functions manifest.
+
+```js
+export const query = graphql`
+  query {
+    avatar: file(relativePath: { eq: "images/avatar.png" }) {
+      childImageSharp {
+        image: gatsbyImageData(height: 400, placeholder: BLURRED)
+      }
+    }
+  }
+`
 ```
 
 ## License
