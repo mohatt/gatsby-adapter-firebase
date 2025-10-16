@@ -27,7 +27,7 @@ exports[`buildHosting() > applies pathPrefix only to internal destinations > con
     },
   ],
   "rewrites": [],
-  "target": "test-functions",
+  "target": "gatsby",
 }
 `;
 
@@ -86,7 +86,7 @@ exports[`buildHosting() > converts Gatsby routes into Firebase hosting rules > c
       "source": "/docs/:splat*",
     },
   ],
-  "target": "test-functions",
+  "target": "gatsby",
 }
 `;
 
@@ -166,7 +166,7 @@ exports[`buildHosting() > converts redirect splats and params into Firebase-comp
     },
   ],
   "rewrites": [],
-  "target": "test-functions",
+  "target": "gatsby",
 }
 `;
 
@@ -191,7 +191,7 @@ exports[`buildHosting() > derives rewrite region from config overrides with fall
       "regex": "^/api(?:/)?$",
     },
   ],
-  "target": "test-functions",
+  "target": "gatsby",
 }
 `;
 
@@ -208,7 +208,7 @@ exports[`buildHosting() > warns when cached route has no cached variant > config
       "regex": "^/dsg(?:/)?$",
     },
   ],
-  "target": "test-functions",
+  "target": "gatsby",
 }
 `;
 

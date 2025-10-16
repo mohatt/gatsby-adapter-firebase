@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "test": "^1.0.0"
+  },
+  "name": "test-project",
+  "version": "0.0.0-test"
+}

@@ -87,23 +87,18 @@ interface TestArgs {
 }
 
 export function createTestArgs<T extends TestArgs>(
-  args?: Omit<T, keyof TestArgs> & Partial<Pick<T, 'options'>>,
+  args?: Omit<T, keyof TestArgs> & { options?: Partial<T['options']> },
 ) {
   const gatsbyReporter = createGatsbyReporter()
   const reporter = new AdaptorReporter(gatsbyReporter as any)
   const options: T['options'] = {
-    functionsOutDir: '.firebase/test',
-    functionsCodebase: 'test-hosting',
-    functionsRuntime: 'node20',
+    hostingTarget: 'gatsby',
     functionsConfig: {},
-    functionsConfigOverride: {
-      'ssr-engine': {
-        timeoutSeconds: 120,
-        region: 'asia-northeast1',
-      },
-    },
+    functionsConfigOverride: {},
+    functionsOutDir: '.firebase/functions',
+    functionsCodebase: 'gatsby',
+    functionsRuntime: 'nodejs20',
     excludeDatastoreFromEngineFunction: false,
-    hostingTarget: 'test-functions',
     ...args?.options,
   }
   return {
