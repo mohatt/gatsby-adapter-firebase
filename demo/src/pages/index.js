@@ -171,7 +171,7 @@ const Home = ({ data: { site } }) => {
         <h2 className='h4 mb-4'>What this demo highlights</h2>
         <div className='row'>
           {featureCards.map((feature) => (
-            <div key={feature.title} className='col-6 mb-4'>
+            <div key={feature.title} className='col-md-6 mb-4'>
               <div className='card h-100 shadow-sm border-0 p-2'>
                 <div className='card-body'>
                   <h3 className='h5 text-dark'>{feature.title}</h3>

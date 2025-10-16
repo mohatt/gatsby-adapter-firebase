@@ -11,7 +11,7 @@ const menu = [
 ]
 
 const Layout = ({ title, children }) => (
-  <div className='container'>
+  <div className='container-lg'>
     <header className='py-3'>
       <nav className='navbar navbar-expand navbar-light bg-light rounded px-3'>
         <Link id='avatar' className='navbar-brand' to='/' />
@@ -29,10 +29,10 @@ const Layout = ({ title, children }) => (
             </li>
           ))}
         </ul>
-        <span className='navbar-brand mb-0'>Gatsby Adapter for Firebase</span>
+        <span className='navbar-brand mb-0 d-none d-md-block'>Gatsby Adapter for Firebase</span>
       </nav>
     </header>
-    <main className='p-5 bg-light'>
+    <main className='p-4 p-lg-5 bg-light'>
       {title && (
         <div className='mb-4 pb-2 border-bottom'>
           <h1 className='h3'>{title}</h1>
