@@ -111,7 +111,7 @@ const Index = ({ data: { site } }) => {
       title: 'Deploy with Firebase CLI',
       description: (
         <>
-          Run <code>firebase deploy</code> to publish Hosting files, SSR functions, and API
+          Run <code>firebase deploy</code> to publish static files, SSR/DSG functions, and API
           endpoints.
         </>
       ),
@@ -155,7 +155,7 @@ const Index = ({ data: { site } }) => {
               className='btn btn-primary me-3 mb-2'
               href='https://github.com/mohatt/gatsby-adapter-firebase'
             >
-              View the adapter on GitHub
+              View source on GitHub
             </a>
             <a
               className='btn btn-outline-secondary mb-2'
@@ -187,7 +187,7 @@ const Index = ({ data: { site } }) => {
       </section>
 
       <section className='mb-2'>
-        <h2 className='h4 mb-4'>Try it yourself</h2>
+        <h2 className='h4 mb-4'>Get Started</h2>
         <div className='row'>
           <div className='col-lg-7 mb-4'>
             <div className='card h-100 border-0 shadow-sm p-2'>
@@ -213,7 +213,7 @@ const Index = ({ data: { site } }) => {
                 <h3 className='h5 text-dark'>API endpoint status</h3>
                 <p className='small text-muted'>
                   This request runs in the browser against the deployed Cloud Function at{' '}
-                  <code>/api/hello-world</code>.
+                  <code>/api/hello-world</code>
                 </p>
                 {apiStatus === 'loading' && (
                   <span className='badge text-bg-info px-3 py-2'>Loading response...</span>
