@@ -1,6 +1,6 @@
 import { logger } from 'firebase-functions/v2'
 import { getStorage } from 'firebase-admin/storage'
-import type { Bucket } from '@google-cloud/storage'
+import type { ApiError, Bucket } from '@google-cloud/storage'
 import type { OutgoingHttpHeader } from 'node:http'
 import type { FunctionHandler, FunctionMetadata, Request, Response } from './types.js'
 import { getDefaultFirebaseApp, prepareRequest } from './utils.js'
@@ -118,10 +118,7 @@ class CacheManager {
     const bucket = await this.getBucket()
     if (!bucket) return null
     try {
-      const file = bucket.file(key)
-      const [exists] = await file.exists()
-      if (!exists) return null
-      const [downloaded] = await file.download({ validation: false })
+      const [downloaded] = await bucket.file(key).download({ validation: false })
       const newlineIndex = downloaded.indexOf(0x0a) // '\n'
       if (newlineIndex === -1) {
         throw new Error(`Missing metadata delimiter`)
@@ -142,6 +139,7 @@ class CacheManager {
       const body = downloaded.subarray(newlineIndex + 1)
       return { metadata, body }
     } catch (error) {
+      if ((error as ApiError)?.code === 404) return null // skip error if not found
       logger.error(`[gatsby-adapter-firebase] Failed to read cached response for ${key}:`, error)
     }
     return null

@@ -20,6 +20,9 @@ vi.mock('firebase-admin/storage', () => ({
           return [cache.has(name)]
         },
         async download(): Promise<[Buffer]> {
+          if (!cache.has(name)) {
+            throw Object.assign(new Error('Not Found'), { code: 404 })
+          }
           const payload = cache.get(name)
           if (!payload) {
             throw new Error(`No stored payload for ${name}`)
