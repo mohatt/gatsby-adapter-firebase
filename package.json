@@ -17,7 +17,7 @@
   "bugs": "https://github.com/mohatt/gatsby-adapter-firebase/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mohatt/gatsby-adapter-firebase.git"
+    "url": "git+https://github.com/mohatt/gatsby-adapter-firebase.git"
   },
   "license": "MIT",
   "author": "Mohamed Elkholy <mohatt@pm.me>",
@@ -75,10 +75,10 @@
     "express": "^4.21.0",
     "firebase-admin": "^13.5.0",
     "firebase-functions": "^6.5.0",
-    "gatsby": "^5.14.6",
+    "gatsby": "^5.15.0",
     "lodash": "^4.17.21",
     "memfs": "^4.49.0",
-    "pkgroll": "^2.18.1",
+    "pkgroll": "^2.19.0",
     "prettier": "^3.6.2",
     "prettier-plugin-packagejson": "^2.5.19",
     "semantic-release": "^24.2.9",
