@@ -49,6 +49,7 @@ export const getOptionsSchema = (joi: PluginOptionsSchemaJoi) => {
         .default('gatsby'),
       functionsRuntime: joi
         .string()
+        .valid('nodejs20', 'nodejs22')
         .description('Runtime identifier (e.g. nodejs20) used for generated Firebase functions')
         .default('nodejs20'),
       storageBucket: joi

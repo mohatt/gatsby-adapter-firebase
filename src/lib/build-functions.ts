@@ -24,7 +24,7 @@ import {
 export interface BuildFunctionsOptions {
   functionsOutDir: string
   functionsCodebase: string
-  functionsRuntime: string
+  functionsRuntime: 'nodejs20' | 'nodejs22'
   functionsConfig?: FunctionConfig
   functionsConfigOverride?: Record<string, FunctionConfig>
   storageBucket?: string

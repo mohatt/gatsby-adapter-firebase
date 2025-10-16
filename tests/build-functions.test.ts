@@ -20,7 +20,7 @@ describe('buildFunctions()', () => {
       options: {
         functionsOutDir: '.firebase/test',
         functionsCodebase: 'test-functions',
-        functionsRuntime: 'node22',
+        functionsRuntime: 'nodejs22',
         functionsConfig: {
           labels: {
             custom: 'custom-label',

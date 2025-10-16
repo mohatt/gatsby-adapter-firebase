@@ -17,7 +17,7 @@ const testCases: TestCase[] = [
       hostingTarget: 'custom',
       functionsOutDir: 'custom/functions',
       functionsCodebase: 'custom',
-      functionsRuntime: 'node22',
+      functionsRuntime: 'nodejs22',
       functionsConfig: {
         region: 'us-west1',
         timeoutSeconds: 120,
@@ -45,7 +45,7 @@ const testCases: TestCase[] = [
       hostingTarget: 123,
       functionsOutDir: false,
       functionsCodebase: ['invalid'],
-      functionsRuntime: {},
+      functionsRuntime: 'nodejs18',
       functionsConfig: 'invalid',
       functionsConfigOverride: {
         'ssr-engine': 'invalid',

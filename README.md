@@ -137,11 +137,7 @@ The `codebase` name used in `firebase.json`.
 
 #### functionsRuntime
 
-Runtime string passed to Firebase (for example `nodejs20`).
-
-#### storageBucket
-
-Overrides the Firebase Storage bucket used for DSG caching. Leave unset to use the project’s default bucket.
+Runtime string passed to Firebase. Supported runtimes are `nodejs20` (default) and `nodejs22`.
 
 #### functionsConfig
 
@@ -150,6 +146,10 @@ Default HTTPS options applied to every generated function.
 #### functionsConfigOverride
 
 Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant (e.g. `ssr-engine-cached`).
+
+#### storageBucket
+
+Overrides the Firebase Storage bucket used for DSG caching. Leave unset to use the project’s default bucket.
 
 #### excludeDatastoreFromEngineFunction
 
