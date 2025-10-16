@@ -3,7 +3,7 @@ exports.createPages = async ({ actions }) => {
 
   createPage({
     path: `dsg`,
-    component: require.resolve(`./src/templates/dsg.js`),
+    component: require.resolve(`./src/templates/dsg.jsx`),
     context: {
       name: `Defer test`,
     },

@@ -1,9 +1,8 @@
-import React from 'react'
 import { graphql } from 'gatsby'
-import Layout from '../components/layout'
 import { Link, Pagination } from 'gatsby-plugin-advanced-pages'
+import { PageHead, PageLayout } from '../components'
 
-const BlogTemplate = ({ data, pageContext }) => {
+const Blog = ({ data, pageContext }) => {
   const { page, feed, tags } = data
   const { tag } = pageContext
 
@@ -21,7 +20,7 @@ const BlogTemplate = ({ data, pageContext }) => {
   }
 
   return (
-    <Layout title={title}>
+    <PageLayout title={title}>
       <section className='mb-4'>
         <p className='lead'>
           These posts are sourced from Markdown files under <code>content/blog</code>, transformed
@@ -65,9 +64,11 @@ const BlogTemplate = ({ data, pageContext }) => {
         </div>
       </section>
       <Pagination route={route} params={params} pageInfo={feed.pageInfo} ui='simple' />
-    </Layout>
+    </PageLayout>
   )
 }
+
+export const Head = ({ data }) => <PageHead title={data.page.title} />
 
 export const query = graphql`
   query Blog($id: String!, $limit: Int!, $offset: Int!, $filter: MarkdownRemarkFilterInput!) {
@@ -98,4 +99,4 @@ export const query = graphql`
   }
 `
 
-export default BlogTemplate
+export default Blog

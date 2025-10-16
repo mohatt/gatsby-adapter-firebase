@@ -1,9 +1,8 @@
-import React from 'react'
 import { graphql } from 'gatsby'
-import Layout from '../components/layout'
+import { PageHead, PageLayout } from '../components'
 
-const DsgTemplate = () => (
-  <Layout title='Deferred static generation'>
+const DSG = () => (
+  <PageLayout title='Deferred Static Generation (DSG)'>
     <div>
       <p className='lead'>
         This page opts into Gatsby&apos;s Deferred Static Generation (DSG). When you hit it for the
@@ -21,7 +20,7 @@ const DsgTemplate = () => (
           <code>defer</code> option.
         </li>
         <li className='mb-2'>
-          <strong>Caching:</strong> the adapter pushes the rendered HTML to Hosting so future
+          <strong>Caching:</strong> the adapter stores the rendered HTML to Cloud Storage so future
           visitors see CDN-speed responses.
         </li>
         <li className='mb-0'>
@@ -34,18 +33,13 @@ const DsgTemplate = () => (
         production caches.
       </p>
     </div>
-  </Layout>
+  </PageLayout>
 )
 
-export const Head = ({ data }) => (
-  <>
-    <title>Deferred static generation</title>
-    <meta name='description' content={data.site.siteMetadata.description} />
-  </>
-)
+export const Head = () => <PageHead title='Deferred Static Generation (DSG)' />
 
 export const query = graphql`
-  query Dsg {
+  query DSG {
     site {
       siteMetadata {
         title
@@ -55,4 +49,4 @@ export const query = graphql`
   }
 `
 
-export default DsgTemplate
+export default DSG

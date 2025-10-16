@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { graphql, Script } from 'gatsby'
 import { Link } from 'gatsby-plugin-advanced-pages'
-import Layout from '../components/layout'
+import { PageLayout, PageHead } from '../components'
 
-const Home = ({ data: { site } }) => {
+const Index = ({ data: { site } }) => {
   const [apiStatus, setApiStatus] = useState('loading')
   const [apiPayload, setApiPayload] = useState(null)
 
@@ -141,7 +141,7 @@ const Home = ({ data: { site } }) => {
   }
 
   return (
-    <Layout>
+    <PageLayout>
       <section className='mb-5'>
         <div className='p-4 p-md-5 mb-0 bg-white shadow-sm rounded-3'>
           <h2 className='display-6 mb-3 text-dark'>
@@ -252,17 +252,13 @@ const Home = ({ data: { site } }) => {
       </Script>
 
       <div data-home-script className='small text-muted' />
-    </Layout>
+    </PageLayout>
   )
 }
 
-export const Head = ({ data }) => {
-  const { title, description } = data.site.siteMetadata
+export const Head = () => {
   return (
-    <>
-      <title>{title}</title>
-      <meta name='viewport' content='width=device-width, initial-scale=1' />
-      <meta name='description' content={description} />
+    <PageHead>
       <meta name='robots' content='index,follow' />
       <Script id='home-head-script'>
         {`
@@ -271,12 +267,12 @@ export const Head = ({ data }) => {
           })()
         `}
       </Script>
-    </>
+    </PageHead>
   )
 }
 
 export const query = graphql`
-  query HomePage {
+  query Index {
     site {
       siteMetadata {
         title
@@ -286,4 +282,4 @@ export const query = graphql`
   }
 `
 
-export default Home
+export default Index

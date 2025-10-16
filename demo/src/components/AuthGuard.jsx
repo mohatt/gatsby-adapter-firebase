@@ -1,6 +1,5 @@
-import React from 'react'
 import { useAuthState, useSignInWithGoogle, useSignOut } from 'react-firebase-hooks/auth'
-import { useFirebaseAuth } from './hooks'
+import { useFirebaseAuth } from '../hooks/firebase'
 
 const AuthGuard = ({ title, children }) => {
   const auth = useFirebaseAuth()

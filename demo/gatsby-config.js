@@ -65,4 +65,5 @@ module.exports = {
     title: `Gatsby Adapter for Firebase`,
     description: `Explore how the Gatsby Firebase adapter serves static pages, SSR routes, API endpoints, and DSG content on Firebase Hosting and Cloud Functions.`,
   },
+  jsxRuntime: 'automatic',
 }

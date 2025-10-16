@@ -7,7 +7,7 @@ module.exports = {
         blog: '/blog',
         'blog.tag': '/blog/tag/:tag',
       },
-      template: 'blog.js',
+      template: 'blog.jsx',
       helper: createFeedPages,
     },
     {
@@ -15,7 +15,7 @@ module.exports = {
       routes: {
         'blog.post': '/blog/:post',
       },
-      template: 'post.js',
+      template: 'post.jsx',
       helper: createPostPages,
     },
   ],

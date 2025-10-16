@@ -1,6 +1,5 @@
-import React from 'react'
 import { Link } from 'gatsby-plugin-advanced-pages'
-import './layout.css'
+import './PageLayout.css'
 
 const menu = [
   { title: 'Home', route: '/' },
@@ -10,7 +9,7 @@ const menu = [
   { title: 'Blog', route: 'blog' },
 ]
 
-const Layout = ({ title, children }) => (
+const PageLayout = ({ title, children }) => (
   <div className='container-lg'>
     <header className='py-3'>
       <nav className='navbar navbar-expand navbar-light bg-light rounded px-3'>
@@ -55,4 +54,4 @@ const Layout = ({ title, children }) => (
   </div>
 )
 
-export default Layout
+export default PageLayout

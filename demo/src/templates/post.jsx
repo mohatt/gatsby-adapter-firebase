@@ -1,10 +1,9 @@
-import React from 'react'
 import { graphql } from 'gatsby'
-import Layout from '../components/layout'
 import { Link } from 'gatsby-plugin-advanced-pages'
+import { PageLayout, PageHead } from '../components'
 
-const PostTemplate = ({ data: { post } }) => (
-  <Layout title={post.frontmatter.title}>
+const Post = ({ data: { post } }) => (
+  <PageLayout title={post.frontmatter.title}>
     <div className='mb-4 text-muted'>
       <p className='lead'>
         Generated from Markdown during the Gatsby build and served as a static page.
@@ -21,8 +20,10 @@ const PostTemplate = ({ data: { post } }) => (
     <div className='mt-4'>
       <Link to='blog'>← Back to all posts</Link>
     </div>
-  </Layout>
+  </PageLayout>
 )
+
+export const Head = ({ data }) => <PageHead title={data.post.frontmatter.title} />
 
 export const query = graphql`
   query Post($id: String!, $post: String!) {
@@ -40,4 +41,4 @@ export const query = graphql`
   }
 `
 
-export default PostTemplate
+export default Post

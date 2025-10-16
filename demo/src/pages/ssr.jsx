@@ -1,14 +1,13 @@
-import React from 'react'
 import { graphql } from 'gatsby'
-import Layout from '../components/layout'
+import { PageHead, PageLayout } from '../components'
 
-const SSRPage = ({ serverData }) => {
+const SSR = ({ serverData }) => {
   if (serverData?.error) {
     return (
-      <Layout title='SSR Page with Dogs'>
+      <PageLayout title='Server-side Rendering (SSR)'>
         <p className='text-danger'>We could not fetch a dog photo right now.</p>
         <p className='text-muted small'>{serverData.error}</p>
-      </Layout>
+      </PageLayout>
     )
   }
 
@@ -17,7 +16,7 @@ const SSRPage = ({ serverData }) => {
     : 'unknown time'
 
   return (
-    <Layout title='SSR Page with Dogs'>
+    <PageLayout title='Server-side Rendering (SSR)'>
       <p className='lead'>
         Every visit to this page triggers <code>getServerData()</code>. Gatsby Firebase adapter
         executes that handler in a Cloud Function, fetches fresh data from{' '}
@@ -43,7 +42,7 @@ const SSRPage = ({ serverData }) => {
           </p>
         </div>
       </div>
-    </Layout>
+    </PageLayout>
   )
 }
 
@@ -75,15 +74,10 @@ export const getServerData = async (props) => {
   }
 }
 
-export const Head = ({ data }) => (
-  <>
-    <title>Server-Side Rendering</title>
-    <meta name='description' content={data.site.siteMetadata.description} />
-  </>
-)
+export const Head = () => <PageHead title='Server-side Rendering (SSR)' />
 
 export const query = graphql`
-  query Dsg {
+  query SSR {
     site {
       siteMetadata {
         title
@@ -93,4 +87,4 @@ export const query = graphql`
   }
 `
 
-export default SSRPage
+export default SSR

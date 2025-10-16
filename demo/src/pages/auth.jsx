@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { graphql } from 'gatsby'
-import Layout from '../components/layout'
-import AuthGuard from '../firebase/AuthGuard'
+import { PageLayout, PageHead, AuthGuard } from '../components'
 import { useIdToken } from 'react-firebase-hooks/auth'
-import { useFirebaseAuth } from '../firebase/hooks'
+import { useFirebaseAuth } from '../hooks/firebase'
 
 const codeSnippet = `const token = await user.getIdToken()
 await fetch('/api/hello-world', {
@@ -42,7 +41,7 @@ const AuthenticatedContent = () => {
         <div className='card h-100 border-0 shadow-sm p-2'>
           <div className='card-body'>
             <h3 className='h5 text-dark mb-3'>Authenticated session details</h3>
-            <p className='small text-muted'>These values come from the Firebase Auth SDK.</p>
+            <p className='small text-muted'>These values come from Firebase Auth SDK.</p>
             {loading && <span className='badge text-bg-info px-3 py-2'>Loading token...</span>}
             {error && (
               <div className='alert alert-danger mt-3 mb-0' role='alert'>
@@ -89,11 +88,11 @@ const AuthenticatedContent = () => {
   )
 }
 
-const AuthPage = () => (
-  <Layout title='Authentication'>
+const Auth = () => (
+  <PageLayout title='Authentication'>
     <section className=''>
       <p className='text-muted mb-3 lead'>
-        This page show how client code can add an authentication layer using Firebase SDK.
+        This page shows how client code can add an authentication layer using Firebase SDK.
       </p>
     </section>
     <AuthGuard title='You are signed in'>
@@ -112,15 +111,10 @@ const AuthPage = () => (
         </div>
       </div>
     </section>
-  </Layout>
+  </PageLayout>
 )
 
-export const Head = ({ data }) => (
-  <>
-    <title>Firebase Auth demo</title>
-    <meta name='description' content={data.site.siteMetadata.description} />
-  </>
-)
+export const Head = () => <PageHead title='Authentication' />
 
 export const query = graphql`
   query Auth {
@@ -133,4 +127,4 @@ export const query = graphql`
   }
 `
 
-export default AuthPage
+export default Auth
