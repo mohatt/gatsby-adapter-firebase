@@ -49,16 +49,13 @@ const AuthGuard = ({ title, children }) => {
     )
   }
 
-  const headingTitle = authStateLoading ? title : 'Sign in'
-  const headingMessage = authStateLoading
-    ? 'Please wait...'
-    : 'You must be signed in to view this page.'
-
   return (
     <section className='py-4'>
       <div className='mb-4'>
-        <h2 className='h4 mb-2'>{headingTitle}</h2>
-        <p className='mb-0 text-muted'>{headingMessage}</p>
+        <h2 className='h4 mb-2'>Sign in</h2>
+        <p className='mb-0 text-muted'>
+          {authStateLoading ? 'Please wait...' : 'You must be signed in to view this page.'}
+        </p>
       </div>
       {authStateError && (
         <div className='alert alert-danger' role='alert'>
