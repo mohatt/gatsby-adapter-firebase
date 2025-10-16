@@ -163,4 +163,33 @@ describe('createCachedHandler()', { timeout: 60_000 }, () => {
     )
     assertCacheState()
   })
+
+  it('skips stale cache entries', async () => {
+    const [handler, agent] = createTestApp('version-check', async (_req, res) => {
+      res.statusCode = 200
+      res.setHeader('test-header', 'fresh-value')
+      res.end('fresh-response')
+    })
+
+    const encodedPath = Buffer.from('/fresh').toString('base64url')
+    const key = `.gatsby-adapter-firebase/version-check/${encodedPath}.bin`
+    const staleHeader = JSON.stringify({
+      status: 200,
+      headers: [
+        { name: 'cache-control', value: 'public, max-age=0, must-revalidate' },
+        { name: 'content-length', value: 5 },
+      ],
+      version: 'old-version',
+    })
+
+    cache.set(key, {
+      file: Buffer.concat([Buffer.from(`${staleHeader}\n`, 'utf8'), Buffer.from('stale', 'utf8')]),
+      metadata: { metadata: { headerLength: staleHeader.length + 1 } },
+    })
+
+    await assertResponse(agent.get('/fresh'), 'miss')
+    await assertResponse(agent.get('/fresh'), 'hit')
+    expect(handler).toHaveBeenCalledTimes(1)
+    assertCacheState()
+  })
 })

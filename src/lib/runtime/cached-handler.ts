@@ -8,6 +8,7 @@ import { getDefaultFirebaseApp, prepareRequest } from './utils.js'
 export interface CachedResponseMetadata {
   status: number
   headers: Array<{ name: string; value: OutgoingHttpHeader }>
+  version: string
 }
 
 type AllowedMethod = 'GET' | 'HEAD'
@@ -109,8 +110,8 @@ class CacheManager {
       '/'
     const normalized = normalizeTrailing ? path.replace(/\/+$/u, '') : path
     const encoded = Buffer.from(normalized).toString('base64url')
-    // `meta.version` ensures that the cache is invalidated when the function is updated
-    return `.gatsby-adapter-firebase/${this.meta.id}/${this.meta.version}/${encoded}.bin`
+    // Keep key stable; cache invalidation happens via metadata.version stored inside the file
+    return `.gatsby-adapter-firebase/${this.meta.id}/${encoded}.bin`
   }
 
   async readResponse(key: string): Promise<CachedResponse | null> {
@@ -128,8 +129,15 @@ class CacheManager {
       const metadata: CachedResponseMetadata = JSON.parse(
         downloaded.subarray(0, newlineIndex).toString('utf8'),
       )
-      if (!metadata || typeof metadata.status !== 'number' || !Array.isArray(metadata.headers)) {
+      if (
+        !metadata?.version ||
+        typeof metadata.status !== 'number' ||
+        !Array.isArray(metadata.headers)
+      ) {
         throw new Error(`Invalid metadata`)
+      }
+      if (metadata.version !== this.meta.version) {
+        return null
       }
       const body = downloaded.subarray(newlineIndex + 1)
       return { metadata, body }
@@ -305,6 +313,7 @@ export const createCachedHandler = (
       const metadata: CachedResponseMetadata = {
         status: statusCode,
         headers: createCachedHeaders(res, totalLength),
+        version: meta.version,
       }
 
       void cacheManager.writeResponse(cacheKey, metadata, body)

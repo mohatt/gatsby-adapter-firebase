@@ -2,7 +2,7 @@
 
 exports[`createCachedHandler() > caches 404 responses > cache 1`] = `
 Map {
-  ".gatsby-adapter-firebase/not-found/test-version/L21pc3Npbmc.bin" => {
+  ".gatsby-adapter-firebase/not-found/L21pc3Npbmc.bin" => {
     "file": {
       "body": "missing",
       "header": {
@@ -17,12 +17,13 @@ Map {
           },
         ],
         "status": 404,
+        "version": "test-version",
       },
     },
     "metadata": {
       "contentType": "application/octet-stream",
       "metadata": {
-        "headerLength": 133,
+        "headerLength": 158,
       },
     },
   },
@@ -131,7 +132,7 @@ exports[`createCachedHandler() > handles write errors correctly > response[repea
 
 exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > cache 1`] = `
 Map {
-  ".gatsby-adapter-firebase/head/test-version/L2hlYWQ.bin" => {
+  ".gatsby-adapter-firebase/head/L2hlYWQ.bin" => {
     "file": {
       "body": "payload",
       "header": {
@@ -146,12 +147,13 @@ Map {
           },
         ],
         "status": 200,
+        "version": "test-version",
       },
     },
     "metadata": {
       "contentType": "application/octet-stream",
       "metadata": {
-        "headerLength": 133,
+        "headerLength": 158,
       },
     },
   },
@@ -192,7 +194,7 @@ exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > res
 
 exports[`createCachedHandler() > serves streaming responses correctly > cache 1`] = `
 Map {
-  ".gatsby-adapter-firebase/function-id/test-version/L2hlbGxv.bin" => {
+  ".gatsby-adapter-firebase/function-id/L2hlbGxv.bin" => {
     "file": {
       "body": "hello, world",
       "header": {
@@ -211,12 +213,13 @@ Map {
           },
         ],
         "status": 200,
+        "version": "test-version",
       },
     },
     "metadata": {
       "contentType": "application/octet-stream",
       "metadata": {
-        "headerLength": 178,
+        "headerLength": 203,
       },
     },
   },
@@ -253,6 +256,74 @@ exports[`createCachedHandler() > serves streaming responses correctly > response
   },
   "status": 200,
   "text": "hello, world",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > skips stale cache entries > cache 1`] = `
+Map {
+  ".gatsby-adapter-firebase/version-check/L2ZyZXNo.bin" => {
+    "file": {
+      "body": "fresh-response",
+      "header": {
+        "headers": [
+          {
+            "name": "cache-control",
+            "value": "public, max-age=0, must-revalidate",
+          },
+          {
+            "name": "content-length",
+            "value": 14,
+          },
+          {
+            "name": "test-header",
+            "value": "fresh-value",
+          },
+        ],
+        "status": 200,
+        "version": "test-version",
+      },
+    },
+    "metadata": {
+      "contentType": "application/octet-stream",
+      "metadata": {
+        "headerLength": 204,
+      },
+    },
+  },
+}
+`;
+
+exports[`createCachedHandler() > skips stale cache entries > response[hit] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "14",
+    "date": "<any>",
+    "test-header": "fresh-value",
+    "x-gatsby-firebase-cache": "HIT",
+  },
+  "status": 200,
+  "text": "fresh-response",
+  "type": "",
+}
+`;
+
+exports[`createCachedHandler() > skips stale cache entries > response[miss] 1`] = `
+{
+  "body": {},
+  "headers": {
+    "cache-control": "public, max-age=0, must-revalidate",
+    "connection": "close",
+    "content-length": "14",
+    "date": "<any>",
+    "test-header": "fresh-value",
+    "x-gatsby-firebase-cache": "MISS",
+  },
+  "status": 200,
+  "text": "fresh-response",
   "type": "",
 }
 `;
