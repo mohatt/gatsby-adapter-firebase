@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.4.1...v1.4.2) (2025-10-16)
+
+
+### Bug Fixes
+
+* **options:** restrict `functionsRuntime` option to `nodejs20` and `nodejs22` ([af317c2](https://github.com/mohatt/gatsby-adapter-firebase/commit/af317c284f9f5918d316c0fc0123906ae2c8142e))
+
 ## [1.4.1](https://github.com/mohatt/gatsby-adapter-firebase/compare/v1.4.0...v1.4.1) (2025-10-16)
 
 
