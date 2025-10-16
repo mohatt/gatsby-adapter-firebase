@@ -95,16 +95,16 @@ Because this file is regenerated on every build, it is safer to keep the version
 
 ## Firebase functions
 
-The adapter packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions`. Each Gatsby function is built into a single Firebase function. If you opted for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
+The adapter packages Gatsby Functions (SSR, DSG, and standard functions) into a Firebase Functions codebase. Functions are written to `.firebase/functions`. Each Gatsby function is built into a single Firebase function. If you opt for [Deferred Static Generation (DSG)](https://www.gatsbyjs.com/docs/how-to/rendering-options/using-deferred-static-generation/), the SSR engine function will be built into two separate functions:
 
 - A default function for SSR function handler.
-- A cached [DSG variant](#dsg-functions) for pages marked with `defer: true`.
+- A cached [DSG build](#dsg-functions) for pages marked with `defer: true`.
 
 The default runtime is `nodejs20`; override it with the [`functionsRuntime`](#adapter-options) option. The directory is re-created on each build, so do not commit it.
 
 ## Adapter options
 
-Pass options to the adapter factory in `gatsby-config`:
+Pass options to the adapter factory in `gatsby-config.js`:
 
 ```js
 adapter: firebaseAdapter({
@@ -141,11 +141,11 @@ Runtime string passed to Firebase. Supported runtimes are `nodejs20` (default) a
 
 #### functionsConfig
 
-Default HTTPS options applied to every generated function.
+Default HTTPS options applied to every generated function. See [Functions Runtime Options](https://firebase.google.com/docs/reference/functions/firebase-functions.runtimeoptions#properties).
 
 #### functionsConfigOverride
 
-Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant (e.g. `ssr-engine-cached`).
+Per-function overrides keyed by Gatsby `functionId`. Append `-cached` to target the cached variant (e.g. `ssr-engine-cached`). See [Functions Runtime Options](https://firebase.google.com/docs/reference/functions/firebase-functions.runtimeoptions#properties).
 
 #### storageBucket
 
@@ -157,20 +157,19 @@ When `true`, the adapter keeps Gatsby’s LMDB datastore out of SSR/DSG bundles.
 
 ## DSG functions
 
-The adapter supports **Deferred Static Generation (DSG)** by automatically creating a cached variant of Gatsby SSR Function if needed. It behave similarly to Gatsby Cloud but rely on **Firebase Storage**.
+The adapter supports **Deferred Static Generation (DSG)** by automatically creating a cached build of Gatsby SSR Engine Function. It behaves similarly to Gatsby Cloud but relies on **Firebase Storage**.
 
-> To enable DSG caching, your Firebase project must have **Cloud Storage** enabled.  
-> If Storage is disabled or no default bucket exists, DSG function will gracefully fall back to **standard SSR** behavior with no caching.
+> To enable DSG caching, your Firebase project must have **Cloud Storage** enabled.
 
 ### Key characteristics
 
 - They accept only `GET` and `HEAD` requests.
-- They use the default Firebase Storage bucket (unless overridden with `storageBucket`) to store caches under `.gatsby-adapter-firebase/<functionId>`.
-- If Storage is unreachable for any reason, the request falls back to the uncached handler and returns `X-Gatsby-Firebase-Cache: PASS`.
+- They use the default Firebase Storage bucket (unless overridden with `storageBucket` option) to store caches under `.gatsby-adapter-firebase/<functionId>`.
 - They use the request’s URL path to determine whether to create a new cache object or reuse an existing one.
-- On a miss, the underlying Gatsby handler runs. The proxy records outgoing chunks for `GET` requests only.
+- On a miss, the underlying Gatsby handler runs. The proxy records outgoing response chunks for `GET` requests only.
 - When the response finishes with status `2xx`, `301`, `302`, `307`, `308`, or `404`, the payload and headers are written to Storage.
 - Cached requests return `X-Gatsby-Firebase-Cache: HIT`. All other statuses skip caching and return `MISS`.
+- If Storage is unreachable for any reason, the request falls back to **standard SSR** behavior with no caching and returns `X-Gatsby-Firebase-Cache: PASS`.
 
 The handler always sets `cache-control` unless the function already provided one:
 
