@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import _ from 'lodash'
 import express from 'express'
 import request from 'supertest'
-import { createCachedHandler } from '../src/lib/runtime/cached-handler.js'
+import { createCachedFunction } from '../src/lib/runtime/index.js'
 import type { FunctionHandler } from '../src/lib/runtime/types.js'
 
 const cache = new Map<string, { file: Buffer; metadata: object }>()
@@ -41,7 +41,12 @@ vi.mock('firebase-admin/storage', () => ({
 
 const createTestApp = (id: string, handler: FunctionHandler) => {
   const mockHandler = vi.fn(handler)
-  const cachedHandler = createCachedHandler(mockHandler, { id, version: 'test-version' })
+  const cachedHandler = createCachedFunction(mockHandler, {
+    id,
+    name: `${id}-fn`,
+    version: 'test-version',
+    generator: 'test',
+  })
   const server = express().disable('x-powered-by')
   server.all('*', (req, res) => {
     Promise.resolve(cachedHandler(req as any, res)).catch((error) => {
@@ -76,7 +81,7 @@ const assertCacheState = (encoding: BufferEncoding = 'utf8') => {
   expect(decodedCache).toMatchSnapshot('cache')
 }
 
-describe('createCachedHandler()', { timeout: 60_000 }, () => {
+describe('createCachedFunction()', { timeout: 60_000 }, () => {
   beforeEach(() => {
     cache.clear()
     vi.clearAllMocks()

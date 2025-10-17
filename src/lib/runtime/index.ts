@@ -41,7 +41,7 @@ const resolveFunctionExports = (
   return [gatsbyHandler, config] as const
 }
 
-export const createHttpsFunction = (
+export const createFunction = (
   module: FunctionModule,
   meta: FunctionMetadata,
   baseConfig?: FunctionConfig,
@@ -50,7 +50,7 @@ export const createHttpsFunction = (
   return onRequest(config, createDefaultHandler(handler, meta))
 }
 
-export const createCachedHttpsFunction = (
+export const createCachedFunction = (
   module: FunctionModule,
   meta: FunctionMetadata,
   baseConfig?: FunctionConfig,

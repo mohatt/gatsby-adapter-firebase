@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`createCachedHandler() > caches 404 responses > cache 1`] = `
+exports[`createCachedFunction() > caches 404 responses > cache 1`] = `
 Map {
   ".gatsby-adapter-firebase/not-found/L21pc3Npbmc.bin" => {
     "file": {
@@ -30,7 +30,7 @@ Map {
 }
 `;
 
-exports[`createCachedHandler() > caches 404 responses > response[hit] 1`] = `
+exports[`createCachedFunction() > caches 404 responses > response[hit] 1`] = `
 {
   "body": {},
   "headers": {
@@ -46,7 +46,7 @@ exports[`createCachedHandler() > caches 404 responses > response[hit] 1`] = `
 }
 `;
 
-exports[`createCachedHandler() > caches 404 responses > response[miss] 1`] = `
+exports[`createCachedFunction() > caches 404 responses > response[miss] 1`] = `
 {
   "body": {},
   "headers": {
@@ -62,9 +62,9 @@ exports[`createCachedHandler() > caches 404 responses > response[miss] 1`] = `
 }
 `;
 
-exports[`createCachedHandler() > does not cache non-cacheable status codes > cache 1`] = `Map {}`;
+exports[`createCachedFunction() > does not cache non-cacheable status codes > cache 1`] = `Map {}`;
 
-exports[`createCachedHandler() > does not cache non-cacheable status codes > response[miss] 1`] = `
+exports[`createCachedFunction() > does not cache non-cacheable status codes > response[miss] 1`] = `
 {
   "body": {},
   "headers": {
@@ -80,7 +80,7 @@ exports[`createCachedHandler() > does not cache non-cacheable status codes > res
 }
 `;
 
-exports[`createCachedHandler() > does not cache non-cacheable status codes > response[repeat] 1`] = `
+exports[`createCachedFunction() > does not cache non-cacheable status codes > response[repeat] 1`] = `
 {
   "body": {},
   "headers": {
@@ -96,9 +96,9 @@ exports[`createCachedHandler() > does not cache non-cacheable status codes > res
 }
 `;
 
-exports[`createCachedHandler() > handles write errors correctly > cache 1`] = `Map {}`;
+exports[`createCachedFunction() > handles write errors correctly > cache 1`] = `Map {}`;
 
-exports[`createCachedHandler() > handles write errors correctly > response[miss] 1`] = `
+exports[`createCachedFunction() > handles write errors correctly > response[miss] 1`] = `
 {
   "body": {},
   "headers": {
@@ -114,7 +114,7 @@ exports[`createCachedHandler() > handles write errors correctly > response[miss]
 }
 `;
 
-exports[`createCachedHandler() > handles write errors correctly > response[repeat] 1`] = `
+exports[`createCachedFunction() > handles write errors correctly > response[repeat] 1`] = `
 {
   "body": {},
   "headers": {
@@ -130,7 +130,7 @@ exports[`createCachedHandler() > handles write errors correctly > response[repea
 }
 `;
 
-exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > cache 1`] = `
+exports[`createCachedFunction() > serves cached GET bodies to HEAD requests > cache 1`] = `
 Map {
   ".gatsby-adapter-firebase/head/L2hlYWQ.bin" => {
     "file": {
@@ -160,7 +160,7 @@ Map {
 }
 `;
 
-exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > response[get] 1`] = `
+exports[`createCachedFunction() > serves cached GET bodies to HEAD requests > response[get] 1`] = `
 {
   "body": {},
   "headers": {
@@ -176,7 +176,7 @@ exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > res
 }
 `;
 
-exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > response[head] 1`] = `
+exports[`createCachedFunction() > serves cached GET bodies to HEAD requests > response[head] 1`] = `
 {
   "body": {},
   "headers": {
@@ -192,7 +192,7 @@ exports[`createCachedHandler() > serves cached GET bodies to HEAD requests > res
 }
 `;
 
-exports[`createCachedHandler() > serves streaming responses correctly > cache 1`] = `
+exports[`createCachedFunction() > serves streaming responses correctly > cache 1`] = `
 Map {
   ".gatsby-adapter-firebase/function-id/L2hlbGxv.bin" => {
     "file": {
@@ -226,7 +226,7 @@ Map {
 }
 `;
 
-exports[`createCachedHandler() > serves streaming responses correctly > response[hit] 1`] = `
+exports[`createCachedFunction() > serves streaming responses correctly > response[hit] 1`] = `
 {
   "body": {},
   "headers": {
@@ -243,7 +243,7 @@ exports[`createCachedHandler() > serves streaming responses correctly > response
 }
 `;
 
-exports[`createCachedHandler() > serves streaming responses correctly > response[miss] 1`] = `
+exports[`createCachedFunction() > serves streaming responses correctly > response[miss] 1`] = `
 {
   "body": {},
   "headers": {
@@ -260,7 +260,7 @@ exports[`createCachedHandler() > serves streaming responses correctly > response
 }
 `;
 
-exports[`createCachedHandler() > skips stale cache entries > cache 1`] = `
+exports[`createCachedFunction() > skips stale cache entries > cache 1`] = `
 Map {
   ".gatsby-adapter-firebase/version-check/L2ZyZXNo.bin" => {
     "file": {
@@ -294,7 +294,7 @@ Map {
 }
 `;
 
-exports[`createCachedHandler() > skips stale cache entries > response[hit] 1`] = `
+exports[`createCachedFunction() > skips stale cache entries > response[hit] 1`] = `
 {
   "body": {},
   "headers": {
@@ -311,7 +311,7 @@ exports[`createCachedHandler() > skips stale cache entries > response[hit] 1`] =
 }
 `;
 
-exports[`createCachedHandler() > skips stale cache entries > response[miss] 1`] = `
+exports[`createCachedFunction() > skips stale cache entries > response[miss] 1`] = `
 {
   "body": {},
   "headers": {
