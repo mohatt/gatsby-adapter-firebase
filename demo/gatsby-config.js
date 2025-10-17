@@ -1,9 +1,9 @@
-const adapter = require('gatsby-adapter-firebase')
+const firebaseAdapter = require('gatsby-adapter-firebase')
 const advancedPages = require('./advanced-pages')
 
 /** @type {import('gatsby').GatsbyConfig} */
 module.exports = {
-  adapter: adapter({ functionsRuntime: 'nodejs22' }),
+  adapter: firebaseAdapter(),
   plugins: [
     {
       resolve: `gatsby-source-filesystem`,
