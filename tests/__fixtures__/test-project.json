@@ -170,23 +170,6 @@
       ]
     },
     {
-      "path": "/old-blog?tag=:id",
-      "type": "redirect",
-      "toPath": "/blog/:id",
-      "status": 302,
-      "ignoreCase": true,
-      "headers": [
-        {
-          "key": "referrer-policy",
-          "value": "same-origin"
-        },
-        {
-          "key": "X-Test-Header",
-          "value": "test"
-        }
-      ]
-    },
-    {
       "path": "/ssr/",
       "type": "function",
       "functionId": "ssr-engine"
@@ -205,26 +188,6 @@
           "value": "same-origin"
         }
       ]
-    },
-    {
-      "path": "/blog/*",
-      "type": "redirect",
-      "toPath": "/zh/blog/*",
-      "status": 302,
-      "ignoreCase": true,
-      "headers": [
-        {
-          "key": "referrer-policy",
-          "value": "same-origin"
-        },
-        {
-          "key": "X-Test-Header",
-          "value": "test"
-        }
-      ],
-      "conditions": {
-        "language": ["zh"]
-      }
     },
     {
       "path": "/docs/*",

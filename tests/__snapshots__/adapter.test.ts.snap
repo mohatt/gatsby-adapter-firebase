@@ -1,0 +1,79 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`adapter() > builds test-project with custom options > config 1`] = `
+{
+  "deployURL": "https://test.local",
+  "excludeDatastoreFromEngineFunction": true,
+  "functionsArch": "x64",
+  "functionsPlatform": "linux",
+  "pluginsToDisable": [
+    "gatsby-plugin-netlify-cache",
+    "gatsby-plugin-netlify",
+  ],
+  "supports": {
+    "pathPrefix": true,
+    "trailingSlash": [
+      "always",
+      "never",
+      "ignore",
+    ],
+  },
+}
+`;
+
+exports[`adapter() > builds test-project with default options > config 1`] = `
+{
+  "deployURL": undefined,
+  "excludeDatastoreFromEngineFunction": false,
+  "functionsArch": "x64",
+  "functionsPlatform": "linux",
+  "pluginsToDisable": [
+    "gatsby-plugin-netlify-cache",
+    "gatsby-plugin-netlify",
+  ],
+  "supports": {
+    "pathPrefix": true,
+    "trailingSlash": [
+      "always",
+      "never",
+      "ignore",
+    ],
+  },
+}
+`;
+
+exports[`adapter() > builds test-project with default options > reporter.activityTimer 1`] = `
+[
+  [
+    "[gatsby-adaptor-firebase]: Building functions workspace",
+  ],
+  [
+    "[gatsby-adaptor-firebase]: Building hosting config",
+  ],
+  [
+    "[gatsby-adaptor-firebase]: Building firebase.json",
+  ],
+]
+`;
+
+exports[`adapter() > builds test-project with default options > reporter.activityTimer.setStatus 1`] = `
+[
+  [
+    "codebase=gatsby, files=26, functions=5 (use --verbose for breakdown)",
+  ],
+  [
+    "target=gatsby, redirects=2, rewrites=7, headers=9",
+  ],
+  [
+    "updated (5.13 KB)",
+  ],
+]
+`;
+
+exports[`adapter() > builds test-project with default options > reporter.verbose 1`] = `
+[
+  [
+    "[gatsby-adaptor-firebase]: version: 0.0.0-test",
+  ],
+]
+`;

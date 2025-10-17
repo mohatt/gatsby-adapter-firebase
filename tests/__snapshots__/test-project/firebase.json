@@ -1,0 +1,234 @@
+{
+  "functions": {
+    "codebase": "gatsby",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ],
+    "runtime": "nodejs20",
+    "source": ".firebase/functions"
+  },
+  "hosting": {
+    "headers": [
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/404.html"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/blog/"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          },
+          {
+            "key": "x-blog-post-header",
+            "value": "test"
+          }
+        ],
+        "source": "/blog/blog-post-1/"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/chunk-map.json"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=31536000, immutable"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/commons-1034b7d483b648953fd4.js"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=31536000, immutable"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/component---src-templates-home-js-8f01e3908d755a337fed.js"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          },
+          {
+            "key": "X-Test-Header",
+            "value": "test"
+          }
+        ],
+        "source": "/page-data/404.html/page-data.json"
+      },
+      {
+        "headers": [
+          {
+            "key": "cache-control",
+            "value": "public, max-age=0, must-revalidate"
+          },
+          {
+            "key": "referrer-policy",
+            "value": "same-origin"
+          }
+        ],
+        "source": "/webpack.stats.json"
+      }
+    ],
+    "ignore": [
+      "**/.*",
+      "**/node_modules/**",
+      "firebase.json"
+    ],
+    "public": "public",
+    "redirects": [
+      {
+        "destination": "https://www.awesomesite.com/docs/:splat",
+        "source": "/docs/:splat*",
+        "type": 302
+      },
+      {
+        "destination": "/blog/:splat",
+        "source": "/old-blog/:splat*",
+        "type": 302
+      }
+    ],
+    "rewrites": [
+      {
+        "function": {
+          "functionId": "test_fetch_info_js"
+        },
+        "regex": "^/api/test/fetch-info(?:/)?$"
+      },
+      {
+        "function": {
+          "functionId": "ssr_engine_cached"
+        },
+        "source": "/page-data/old-posts/page-data.json"
+      },
+      {
+        "function": {
+          "functionId": "ssr_engine"
+        },
+        "source": "/page-data/ssr/page-data.json"
+      },
+      {
+        "function": {
+          "functionId": "fetch_info_js"
+        },
+        "regex": "^/api/fetch-info(?:/)?$"
+      },
+      {
+        "function": {
+          "functionId": "hello_world_js"
+        },
+        "regex": "^/api/hello-world(?:/)?$"
+      },
+      {
+        "function": {
+          "functionId": "ssr_engine_cached"
+        },
+        "regex": "^/old-posts(?:/)?$"
+      },
+      {
+        "function": {
+          "functionId": "ssr_engine"
+        },
+        "regex": "^/ssr(?:/)?$"
+      }
+    ],
+    "target": "gatsby"
+  }
+}

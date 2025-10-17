@@ -75,6 +75,7 @@ export function createGatsbyReporter() {
     }),
     setErrorMap: vi.fn().mockImplementation((map) => Object.assign(state.errMap, map)),
     activityTimer: vi.fn().mockImplementation(() => activity),
+    activity,
   }
 }
 
