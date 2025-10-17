@@ -1,8 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import _ from 'lodash'
 import express from 'express'
 import request from 'supertest'
-import { createCachedFunction } from '../src/lib/runtime/index.js'
+import { createCachedFunction } from '../src/lib/runtime.js'
 import type { FunctionHandler } from '../src/lib/runtime/types.js'
 
 const cache = new Map<string, { file: Buffer; metadata: object }>()
@@ -41,21 +40,22 @@ vi.mock('firebase-admin/storage', () => ({
 
 const createTestApp = (id: string, handler: FunctionHandler) => {
   const mockHandler = vi.fn(handler)
-  const cachedHandler = createCachedFunction(mockHandler, {
-    id,
-    name: `${id}-fn`,
-    version: 'test-version',
-    generator: 'test',
-  })
+  const mockFunction = vi.fn(
+    createCachedFunction(mockHandler, {
+      id,
+      name: `${id}-fn`,
+      version: 'test-version',
+      generator: 'test',
+    }),
+  )
   const server = express().disable('x-powered-by')
   server.all('*', (req, res) => {
-    Promise.resolve(cachedHandler(req as any, res)).catch((error) => {
+    Promise.resolve(mockFunction(req as any, res)).catch((error) => {
       res.statusCode = 500
-      res.end(error instanceof Error ? error.message : String(error))
+      res.end(error.message)
     })
   })
-  const agent = request(server)
-  return [mockHandler, agent] as const
+  return { handler: mockHandler, fn: mockFunction, agent: request(server) } as const
 }
 
 const assertResponse = (
@@ -81,14 +81,14 @@ const assertCacheState = (encoding: BufferEncoding = 'utf8') => {
   expect(decodedCache).toMatchSnapshot('cache')
 }
 
-describe('createCachedFunction()', { timeout: 60_000 }, () => {
+describe('createCachedFunction()', () => {
   beforeEach(() => {
     cache.clear()
     vi.clearAllMocks()
   })
 
   it('serves streaming responses correctly', async () => {
-    const [handler, agent] = createTestApp('function-id', async (_req, res) => {
+    const { handler, agent } = createTestApp('function-id', async (_req, res) => {
       res.statusCode = 200
       res.setHeader('Test-Header', 'test-value')
       res.write('hello')
@@ -102,7 +102,7 @@ describe('createCachedFunction()', { timeout: 60_000 }, () => {
   })
 
   it('does not cache non-cacheable status codes', async () => {
-    const [handler, agent] = createTestApp('non-cacheable', async (_req, res) => {
+    const { handler, agent } = createTestApp('non-cacheable', async (_req, res) => {
       res.statusCode = 500
       res.end('error')
     })
@@ -113,7 +113,7 @@ describe('createCachedFunction()', { timeout: 60_000 }, () => {
   })
 
   it('serves cached GET bodies to HEAD requests', async () => {
-    const [handler, agent] = createTestApp('head', async (_req, res) => {
+    const { handler, agent } = createTestApp('head', async (_req, res) => {
       res.statusCode = 200
       res.end('payload')
     })
@@ -124,7 +124,7 @@ describe('createCachedFunction()', { timeout: 60_000 }, () => {
   })
 
   it('strips query strings before invoking the wrapped handler', async () => {
-    const [handler, agent] = createTestApp('strip-query', async (_req, res) => {
+    const { handler, agent } = createTestApp('strip-query', async (_req, res) => {
       res.status(204).end()
     })
 
@@ -142,7 +142,7 @@ describe('createCachedFunction()', { timeout: 60_000 }, () => {
   })
 
   it('caches 404 responses', async () => {
-    const [handler, agent] = createTestApp('not-found', async (_req, res) => {
+    const { handler, agent } = createTestApp('not-found', async (_req, res) => {
       res.statusCode = 404
       res.end('missing')
     })
@@ -154,7 +154,7 @@ describe('createCachedFunction()', { timeout: 60_000 }, () => {
 
   it('handles write errors correctly', async () => {
     const onError = vi.fn()
-    const [handler, agent] = createTestApp('error', async (_req, res) => {
+    const { handler, agent } = createTestApp('error', async (_req, res) => {
       res.once('error', onError)
       res.write('1-', () => res.write('2-'))
       res.end('3')
@@ -173,7 +173,7 @@ describe('createCachedFunction()', { timeout: 60_000 }, () => {
   })
 
   it('skips stale cache entries', async () => {
-    const [handler, agent] = createTestApp('version-check', async (_req, res) => {
+    const { handler, agent } = createTestApp('version-check', async (_req, res) => {
       res.statusCode = 200
       res.setHeader('test-header', 'fresh-value')
       res.end('fresh-response')

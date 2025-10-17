@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest'
 import { AdapterOptions, validateOptions } from '../src/options.js'
 
 interface TestCase {
