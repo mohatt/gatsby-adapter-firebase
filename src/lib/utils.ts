@@ -23,14 +23,9 @@ export const resolveDistPath = (distPath: string) => {
   return path.join(__dirname, distPath)
 }
 
-let packageJson: PackageJson | undefined
-
 export const readPackageJson = (): PackageJson => {
-  if (!packageJson) {
-    const json = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')
-    packageJson = JSON.parse(json) as PackageJson
-  }
-  return packageJson
+  const json = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')
+  return JSON.parse(json) as PackageJson
 }
 
 let pLimitPromise: Promise<(typeof import('p-limit'))['default']> | undefined

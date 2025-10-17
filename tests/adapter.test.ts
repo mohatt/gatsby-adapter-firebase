@@ -69,4 +69,30 @@ describe('adapter()', () => {
       report: 'all',
     })
   })
+
+  it('warns about unsupported options', async () => {
+    await mountTestProject('test-project')
+    const reporter = createGatsbyReporter()
+    const adapter = createAdapter({ custom: 'unsupported' } as any)
+    await expect(adapter.config({ reporter } as any)).resolves.toBeTruthy()
+    expect(reporter.warn.mock.calls).toMatchSnapshot('reporter.warn')
+  })
+
+  it('warns about DEPLOY_URL env var', async () => {
+    await mountTestProject('test-project')
+    const reporter = createGatsbyReporter()
+    const adapter = createAdapter({ excludeDatastoreFromEngineFunction: true })
+    await expect(adapter.config({ reporter } as any)).resolves.toMatchObject({
+      excludeDatastoreFromEngineFunction: false,
+      deployURL: undefined,
+    })
+    expect(reporter.warn.mock.calls).toMatchSnapshot('reporter.warn')
+  })
+
+  it('throws for invalid options', async () => {
+    await mountTestProject('test-project')
+    const reporter = createGatsbyReporter()
+    const adapter = createAdapter({ functionsRuntime: 'nodejs18' as any, storageBucket: '' })
+    await expect(adapter.config({ reporter } as any)).rejects.toMatchSnapshot('reporter.panic')
+  })
 })

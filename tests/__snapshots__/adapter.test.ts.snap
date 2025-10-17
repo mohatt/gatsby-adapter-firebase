@@ -77,3 +77,29 @@ exports[`adapter() > builds test-project with default options > reporter.verbose
   ],
 ]
 `;
+
+exports[`adapter() > throws for invalid options > reporter.panic 1`] = `
+{
+  "error": [Error: Invalid options provided
+ - "functionsRuntime" must be one of [nodejs20, nodejs22]
+ - "storageBucket" is not allowed to be empty],
+  "text": "The adaptor threw an error during "options" phase",
+}
+`;
+
+exports[`adapter() > warns about DEPLOY_URL env var > reporter.warn 1`] = `
+[
+  [
+    "[gatsby-adaptor-firebase]: excludeDatastoreFromEngineFunction=true but DEPLOY_URL is not set; disabling option.",
+  ],
+]
+`;
+
+exports[`adapter() > warns about unsupported options > reporter.warn 1`] = `
+[
+  [
+    "[gatsby-adaptor-firebase]: Unsupported options provided
+ - "custom" is not allowed",
+  ],
+]
+`;
